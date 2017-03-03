@@ -5,6 +5,8 @@ import asyncio
 import logging
 import logging.config
 
+import requests
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -98,7 +100,10 @@ def main():
     except KeyboardInterrupt:
         shutdown_future.cancel()
         mir_work_task.cancel()
-        loop.run_until_complete(mir_work_task)
+        try:
+            loop.run_until_complete(mir_work_task)
+        except requests.exceptions.ConnectionError:
+            log.warning("Unable to connect to HTTP server, but that's fine as we're shutting down.")
 
         fworker.shutdown()
 
