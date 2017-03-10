@@ -410,6 +410,10 @@ class AbstractSubprocessCommand(AbstractCommand):
             # The process is already stopped, so killing is impossible. That's ok.
             self._log.debug("The process was already stopped, aborting is impossible. That's ok.")
             return
+        except AttributeError:
+            # This can happen in some race conditions, it's fine.
+            self._log.debug("The process was not yet started, aborting is impossible. That's ok.")
+            return
 
         retval = await self.proc.wait()
         self._log.info('The process aborted with status code %s', retval)
