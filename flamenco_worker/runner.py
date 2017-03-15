@@ -294,7 +294,10 @@ def _timestamped_path(path: Path) -> Path:
     from datetime import datetime
 
     mtime = path.stat().st_mtime
-    mdatetime = datetime.fromtimestamp(mtime)
+
+    # Round away the milliseconds, as those aren't all that interesting.
+    # Uniqueness is ensured by calling _unique_path().
+    mdatetime = datetime.fromtimestamp(round(mtime))
 
     # Make the ISO-8601 timestamp a bit more eye- and filename-friendly.
     iso = mdatetime.isoformat().replace('T', '_').replace(':', '')

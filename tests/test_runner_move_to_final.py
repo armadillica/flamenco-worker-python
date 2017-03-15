@@ -49,7 +49,7 @@ class MoveToFinalTest(AbstractCommandTest):
         (dest / 'dest-subdir').mkdir()
         (dest / 'dest-subdir' / 'sub-contents').touch()
 
-        os.utime(str(dest), (1330712280, 1330712292))  # fixed (atime, mtime) for testing
+        os.utime(str(dest), (1330712280.01, 1330712292.02))  # fixed (atime, mtime) for testing
 
         # Run the command.
         task = self.cmd.run({'src': str(src), 'dest': str(dest)})
