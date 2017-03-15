@@ -1,3 +1,5 @@
+import typing
+
 from unittest.mock import Mock
 
 from abstract_worker_test import AbstractWorkerTest
@@ -7,7 +9,6 @@ class MayIRunTest(AbstractWorkerTest):
     def setUp(self):
         from datetime import timedelta
 
-        from mock_responses import CoroMock
         from flamenco_worker.may_i_run import MayIRun
         from flamenco_worker.upstream import FlamencoManager
         from flamenco_worker.worker import FlamencoWorker
@@ -15,7 +16,7 @@ class MayIRunTest(AbstractWorkerTest):
 
         self.loop = construct_asyncio_loop()
         self.manager = Mock(spec=FlamencoManager)
-        self.manager.get = CoroMock()
+        self.manager.get = Mock()
         self.worker = Mock(spec=FlamencoWorker)
         self.shutdown_future = self.loop.create_future()
 
@@ -24,19 +25,30 @@ class MayIRunTest(AbstractWorkerTest):
                            poll_interval=timedelta(seconds=0.2),
                            loop=self.loop)
 
+    def _mock_get(self, *json_responses: dict):
+        import collections
+        values = collections.deque(json_responses)
+
+        async def mocked_get(*args, **kwargs):
+            mock_resp = Mock()
+            mock_resp.json.return_value = values.popleft()
+            return mock_resp
+
+        self.manager.get = mocked_get
+
     def test_may_i_run_false(self):
-        self.manager.get.coro.return_value.json.return_value = {
-            'may_keep_running': False,
-            'reason': 'je moeder',
-        }
+        self._mock_get({
+                'may_keep_running': False,
+                'reason': 'je moeder',
+            })
 
         result = self.loop.run_until_complete(self.mir.may_i_run('1234'))
         self.assertFalse(result)
 
     def test_may_i_run_true(self):
-        self.manager.get.coro.return_value.json.return_value = {
+        self._mock_get({
             'may_keep_running': True,
-        }
+        })
 
         result = self.loop.run_until_complete(self.mir.may_i_run('1234'))
         self.assertTrue(result)
@@ -44,11 +56,11 @@ class MayIRunTest(AbstractWorkerTest):
     def test_work(self):
         import asyncio
 
-        self.manager.get.coro.return_value.json.side_effect = [
+        self._mock_get(
             {'may_keep_running': True},
             {'may_keep_running': False, 'reason': 'unittesting'},
             # After this response, no more calls should be made.
-        ]
+        )
 
         # Let the 'stop_current_task()' call trigger an event.
         stop_event = asyncio.Event()
