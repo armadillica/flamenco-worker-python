@@ -37,12 +37,16 @@ class EmptyResponse:
         pass
 
 
-def CoroMock(return_value=...):
+def CoroMock(return_value=None):
     """Corountine mocking object.
 
     For an example, see test_coro_mock.py.
 
     Source: http://stackoverflow.com/a/32505333/875379
+
+    :param return_value: whatever you want to have set as return value.
+        This must always be set. Pass the ellipsis object ... to not set this; in that case
+        you are responsible yourself to set coromock.coro.return_value.
     """
 
     import asyncio

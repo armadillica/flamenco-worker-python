@@ -81,7 +81,7 @@ class BlenderRenderTest(AbstractCommandTest):
             'filepath': filepath,
         }
 
-        cse = CoroMock()
+        cse = CoroMock(...)
         cse.coro.return_value.wait = CoroMock(return_value=0)
         with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse:
             self.loop.run_until_complete(self.cmd.run(settings))

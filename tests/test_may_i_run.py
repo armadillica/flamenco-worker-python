@@ -1,5 +1,3 @@
-import typing
-
 from unittest.mock import Mock
 
 from abstract_worker_test import AbstractWorkerTest
@@ -16,7 +14,6 @@ class MayIRunTest(AbstractWorkerTest):
 
         self.loop = construct_asyncio_loop()
         self.manager = Mock(spec=FlamencoManager)
-        self.manager.get = Mock()
         self.worker = Mock(spec=FlamencoWorker)
         self.shutdown_future = self.loop.create_future()
 
@@ -25,22 +22,23 @@ class MayIRunTest(AbstractWorkerTest):
                            poll_interval=timedelta(seconds=0.2),
                            loop=self.loop)
 
-    def _mock_get(self, *json_responses: dict):
-        import collections
-        values = collections.deque(json_responses)
+    def _mock_get(self, *json_responses):
+        from collections import deque
+
+        values = deque(json_responses)
 
         async def mocked_get(*args, **kwargs):
-            mock_resp = Mock()
-            mock_resp.json.return_value = values.popleft()
-            return mock_resp
+            mocked_response = Mock()
+            mocked_response.json.return_value = values.popleft()
+            return mocked_response
 
         self.manager.get = mocked_get
 
     def test_may_i_run_false(self):
         self._mock_get({
-                'may_keep_running': False,
-                'reason': 'je moeder',
-            })
+            'may_keep_running': False,
+            'reason': 'je moeder',
+        })
 
         result = self.loop.run_until_complete(self.mir.may_i_run('1234'))
         self.assertFalse(result)
