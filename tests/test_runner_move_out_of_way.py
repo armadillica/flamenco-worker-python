@@ -1,3 +1,6 @@
+from pathlib import Path
+import os
+
 from test_runner import AbstractCommandTest
 
 
@@ -20,8 +23,6 @@ class MoveOutOfWayTest(AbstractCommandTest):
         del self.tmpdir
 
     def test_nonexistant_source(self):
-        from pathlib import Path
-
         src = Path(self.tmpdir.name) / 'nonexistant-dir'
         task = self.cmd.run({'src': str(src)})
         ok = self.loop.run_until_complete(task)
@@ -30,9 +31,6 @@ class MoveOutOfWayTest(AbstractCommandTest):
         self.assertFalse(src.exists())
 
     def test_existing_source(self):
-        from pathlib import Path
-        import os
-
         src = Path(self.tmpdir.name) / 'existing-dir'
         src.mkdir()
         (src / 'src-contents').touch()
@@ -43,14 +41,11 @@ class MoveOutOfWayTest(AbstractCommandTest):
         ok = self.loop.run_until_complete(task)
         self.assertTrue(ok)
 
-        dst = src.with_name('existing-dir-2012-03-02T19:18:12')
+        dst = src.with_name('existing-dir-2012-03-02_191812')
         self.assertTrue(dst.exists())
         self.assertFalse(src.exists())
 
     def test_source_is_file(self):
-        from pathlib import Path
-        import os
-
         src = Path(self.tmpdir.name) / 'existing-file'
         src.touch(exist_ok=False)
         os.utime(str(src), (1330712280, 1330712292))  # fixed (atime, mtime) for testing
@@ -59,29 +54,26 @@ class MoveOutOfWayTest(AbstractCommandTest):
         ok = self.loop.run_until_complete(task)
         self.assertTrue(ok)
 
-        dst = src.with_name('existing-file-2012-03-02T19:18:12')
+        dst = src.with_name('existing-file-2012-03-02_191812')
         self.assertTrue(dst.exists())
         self.assertTrue(dst.is_file())
         self.assertFalse(src.exists())
 
     def test_existing_source_and_dest(self):
-        from pathlib import Path
-        import os
-
         src = Path(self.tmpdir.name) / 'existing-dir'
         src.mkdir()
         (src / 'src-contents').touch()
         os.utime(str(src), (1330712280, 1330712292))  # fixed (atime, mtime) for testing
 
-        existing_dst = src.with_name('existing-dir-2012-03-02T19:18:12')
+        existing_dst = src.with_name('existing-dir-2012-03-02_191812')
         existing_dst.mkdir()
         (existing_dst / 'dst-existing-contents').touch()
 
-        existing_dst2 = src.with_name('existing-dir-2012-03-02T19:18:12-2')
+        existing_dst2 = src.with_name('existing-dir-2012-03-02_191812~2')
         existing_dst2.mkdir()
         (existing_dst2 / 'dst2-existing-contents').touch()
 
-        existing_dst4 = src.with_name('existing-dir-2012-03-02T19:18:12-4')
+        existing_dst4 = src.with_name('existing-dir-2012-03-02_191812~4')
         existing_dst4.mkdir()
         (existing_dst4 / 'dst4-existing-contents').touch()
 
@@ -98,7 +90,7 @@ class MoveOutOfWayTest(AbstractCommandTest):
         self.assertTrue((existing_dst4 / 'dst4-existing-contents').exists())
 
         # The source should have been moved to the new destination.
-        new_dst = existing_dst.with_name('existing-dir-2012-03-02T19:18:12-5')
+        new_dst = existing_dst.with_name('existing-dir-2012-03-02_191812~5')
         self.assertTrue(new_dst.exists())
         self.assertTrue((new_dst / 'src-contents').exists())
 

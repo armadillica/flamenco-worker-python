@@ -288,6 +288,44 @@ class SleepCommand(AbstractCommand):
         await self.worker.register_log('Done sleeping for %s seconds' % time_in_seconds)
 
 
+def _timestamped_path(path: Path) -> Path:
+    """Returns the path with its modification time appended to the name."""
+
+    from datetime import datetime
+
+    mtime = path.stat().st_mtime
+    mdatetime = datetime.fromtimestamp(mtime)
+
+    # Make the ISO-8601 timestamp a bit more eye- and filename-friendly.
+    iso = mdatetime.isoformat().replace('T', '_').replace(':', '')
+    dst = path.with_name('%s-%s' % (path.name, iso))
+
+    return dst
+
+
+def _unique_path(path: Path) -> Path:
+    """Returns the path, or if it exists, the path with a unique suffix."""
+
+    import re
+
+    suf_re = re.compile(r'~([0-9]+)$')
+
+    # See which suffixes are in use
+    max_nr = 0
+    for altpath in path.parent.glob(path.name + '~*'):
+        m = suf_re.search(altpath.name)
+        if not m:
+            continue
+
+        suffix = m.group(1)
+        try:
+            suffix = int(suffix)
+        except ValueError:
+            continue
+        max_nr = max(max_nr, suffix)
+    return path.with_name(path.name + '~%i' % (max_nr + 1))
+
+
 @command_executor('move_out_of_way')
 class MoveOutOfWayCommand(AbstractCommand):
     def validate(self, settings: dict):
@@ -300,9 +338,6 @@ class MoveOutOfWayCommand(AbstractCommand):
             return 'src must be a string'
 
     async def execute(self, settings: dict):
-        from pathlib import Path
-        from datetime import datetime
-
         src = Path(settings['src'])
         if not src.exists():
             self._log.info('Render output path %s does not exist, not moving out of way', src)
@@ -310,23 +345,10 @@ class MoveOutOfWayCommand(AbstractCommand):
                                            'not moving out of way', self.command_name, src)
             return
 
-        mtime = src.stat().st_mtime
-        mdatetime = datetime.fromtimestamp(mtime)
-        dst = src.with_name('%s-%s' % (src.name, mdatetime.isoformat()))
-
+        dst = _timestamped_path(src)
         if dst.exists():
             self._log.debug('Destination %s exists, finding one that does not', dst)
-            # See which suffixes are in use
-            max_nr = 0
-            for path in dst.parent.glob(dst.name + '*'):
-                suffix = path.name.split('-')[-1]
-                try:
-                    suffix = int(suffix)
-                except ValueError:
-                    continue
-                self._log.debug('Found suffix %r', suffix)
-                max_nr = max(max_nr, suffix)
-            dst = dst.with_name(dst.name + '-%i' % (max_nr + 1))
+            dst = _unique_path(dst)
             self._log.debug('New destination is %s', dst)
 
         self._log.info('Moving %s to %s', src, dst)
