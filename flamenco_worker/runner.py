@@ -356,6 +356,40 @@ class MoveOutOfWayCommand(AbstractCommand):
         src.rename(dst)
 
 
+@command_executor('move_to_final')
+class MoveToFinalCommand(AbstractCommand):
+    def validate(self, settings: dict):
+        _, err1 = self._setting(settings, 'src', True)
+        _, err2 = self._setting(settings, 'dest', True)
+        return err1 or err2
+
+    async def execute(self, settings: dict):
+        src = Path(settings['src'])
+        if not src.exists():
+            msg = 'Path %s does not exist, not moving' % src
+            self._log.info(msg)
+            await self.worker.register_log('%s: %s', self.command_name, msg)
+            return
+
+        dest = Path(settings['dest'])
+        if dest.exists():
+            backup = _timestamped_path(dest)
+            self._log.debug('Destination %s exists, moving out of the way to %s', dest, backup)
+
+            if backup.exists():
+                self._log.debug('Destination %s exists, finding one that does not', backup)
+                backup = _unique_path(backup)
+                self._log.debug('New destination is %s', backup)
+
+            self._log.info('Moving %s to %s', dest, backup)
+            await self.worker.register_log('%s: Moving %s to %s', self.command_name, dest, backup)
+            dest.rename(backup)
+
+        self._log.info('Moving %s to %s', src, dest)
+        await self.worker.register_log('%s: Moving %s to %s', self.command_name, src, dest)
+        src.rename(dest)
+
+
 @attr.s
 class AbstractSubprocessCommand(AbstractCommand):
     readline_timeout = attr.ib(default=SUBPROC_READLINE_TIMEOUT)
