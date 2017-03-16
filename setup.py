@@ -5,7 +5,7 @@ import setuptools
 if __name__ == '__main__':
     setuptools.setup(
         name='flamenco-worker',
-        version='2.0-beta10-worker5',
+        version='2.0-beta10-worker6',
         description='Flamenco Worker implementation',
         author='Sybren A. Stüvel',
         author_email='sybren@blender.studio',
