@@ -38,7 +38,7 @@ class FlamencoManager:
 
     @functools.lru_cache(1)
     def user_agent(self):
-        return 'Flamenco-Worker %s' % self.flamenco_worker_version
+        return 'Flamenco-Worker/%s' % self.flamenco_worker_version
 
     async def client_request(self, method, url, *,
                              params=None,
