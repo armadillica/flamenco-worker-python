@@ -23,7 +23,7 @@ class MoveToFinalTest(AbstractCommandTest):
 
     def tearDown(self):
         super().tearDown()
-        del self.tmpdir
+        self.tmpdir.cleanup()
 
     def test_nonexistant_source(self):
         src = self.tmppath / 'nonexistant-dir'

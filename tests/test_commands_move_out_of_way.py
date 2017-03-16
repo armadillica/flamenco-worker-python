@@ -20,7 +20,7 @@ class MoveOutOfWayTest(AbstractCommandTest):
 
     def tearDown(self):
         super().tearDown()
-        del self.tmpdir
+        self.tmpdir.cleanup()
 
     def test_nonexistant_source(self):
         src = Path(self.tmpdir.name) / 'nonexistant-dir'

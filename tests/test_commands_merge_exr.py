@@ -21,7 +21,7 @@ class MergeProgressiveRendersCommandTest(AbstractCommandTest):
 
     def tearDown(self):
         super().tearDown()
-        del self.tmpdir
+        self.tmpdir.cleanup()
 
     def test_happy_flow(self):
         output = Path(self.tmpdir.name) / 'merged.exr'
