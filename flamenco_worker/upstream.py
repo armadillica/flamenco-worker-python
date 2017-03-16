@@ -1,5 +1,6 @@
 import attr
 import concurrent.futures
+import functools
 import requests
 
 from . import attrs_extra
@@ -11,6 +12,7 @@ HTTP_TIMEOUT = 3  # in seconds
 @attr.s
 class FlamencoManager:
     manager_url = attr.ib(validator=attr.validators.instance_of(str))
+    flamenco_worker_version = attr.ib(validator=attr.validators.instance_of(str))
     session = attr.ib(default=None, init=False)
     auth = attr.ib(default=None, init=False)  # tuple (worker_id, worker_secret)
 
@@ -33,6 +35,10 @@ class FlamencoManager:
 
     async def patch(self, *args, loop, **kwargs) -> requests.Response:
         return await self.client_request('PATCH', *args, loop=loop, **kwargs)
+
+    @functools.lru_cache(1)
+    def user_agent(self):
+        return 'Flamenco-Worker %s' % self.flamenco_worker_version
 
     async def client_request(self, method, url, *,
                              params=None,
@@ -74,6 +80,10 @@ class FlamencoManager:
                 self._log.debug('%s %s', method, abs_url)
             else:
                 self._log.debug('%s %s with JSON: %s', method, abs_url, json)
+
+        if headers is None:
+            headers = {}
+        headers['User-Agent'] = self.user_agent()
 
         http_req = partial(self.session.request,
                            method, abs_url,

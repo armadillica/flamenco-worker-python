@@ -37,10 +37,11 @@ def main():
     shutdown_future = loop.create_future()
 
     # Piece all the components together.
-    from . import runner, worker, upstream, upstream_update_queue, may_i_run
+    from . import runner, worker, upstream, upstream_update_queue, may_i_run, __version__
 
     fmanager = upstream.FlamencoManager(
         manager_url=confparser.value('manager_url'),
+        flamenco_worker_version=__version__,
     )
 
     tuqueue = upstream_update_queue.TaskUpdateQueue(
