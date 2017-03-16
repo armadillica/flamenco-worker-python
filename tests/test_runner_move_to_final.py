@@ -8,7 +8,7 @@ class MoveToFinalTest(AbstractCommandTest):
     def setUp(self):
         super().setUp()
 
-        from flamenco_worker.runner import MoveToFinalCommand
+        from flamenco_worker.commands import MoveToFinalCommand
         import tempfile
 
         self.tmpdir = tempfile.TemporaryDirectory()

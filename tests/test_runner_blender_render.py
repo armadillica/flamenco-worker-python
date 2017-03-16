@@ -7,7 +7,7 @@ class BlenderRenderTest(AbstractCommandTest):
     def setUp(self):
         super().setUp()
 
-        from flamenco_worker.runner import BlenderRenderCommand
+        from flamenco_worker.commands import BlenderRenderCommand
 
         self.cmd = BlenderRenderCommand(
             worker=self.fworker,

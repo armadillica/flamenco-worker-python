@@ -8,7 +8,7 @@ class MoveOutOfWayTest(AbstractCommandTest):
     def setUp(self):
         super().setUp()
 
-        from flamenco_worker.runner import MoveOutOfWayCommand
+        from flamenco_worker.commands import MoveOutOfWayCommand
         import tempfile
 
         self.tmpdir = tempfile.TemporaryDirectory()

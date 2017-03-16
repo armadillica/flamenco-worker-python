@@ -23,7 +23,7 @@ class AbstractCommandTest(AbstractWorkerTest):
 class SleepCommandTest(AbstractCommandTest):
     def test_sleep(self):
         import time
-        from flamenco_worker.runner import SleepCommand
+        from flamenco_worker.commands import SleepCommand
 
         cmd = SleepCommand(
             worker=self.fworker,
@@ -43,7 +43,7 @@ class SleepCommandTest(AbstractCommandTest):
 
 class ExecCommandTest(AbstractCommandTest):
     def construct(self):
-        from flamenco_worker.runner import ExecCommand
+        from flamenco_worker.commands import ExecCommand
         cmd = ExecCommand(
             worker=self.fworker,
             task_id='12345',
