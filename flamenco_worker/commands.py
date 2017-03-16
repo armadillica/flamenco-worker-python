@@ -324,6 +324,71 @@ class MoveToFinalCommand(AbstractCommand):
         src.rename(dest)
 
 
+@command_executor('copy_file')
+class CopyFileCommand(AbstractCommand):
+    def validate(self, settings: dict):
+        src, err = self._setting(settings, 'src', True)
+        if err:
+            return err
+        if not src:
+            return 'src may not be empty'
+        dest, err = self._setting(settings, 'dest', True)
+        if err:
+            return err
+        if not dest:
+            return 'dest may not be empty'
+
+    async def execute(self, settings: dict):
+        src = Path(settings['src'])
+        if not src.exists():
+            raise CommandExecutionError('Path %s does not exist, unable to copy' % src)
+
+        dest = Path(settings['dest'])
+        if dest.exists():
+            msg = 'Destination %s exists, going to overwrite it.' % dest
+            self._log.info(msg)
+            await self.worker.register_log('%s: %s', self.command_name, msg)
+
+        self._log.info('Copying %s to %s', src, dest)
+        await self.worker.register_log('%s: Copying %s to %s', self.command_name, src, dest)
+
+        if not dest.parent.exists():
+            await self.worker.register_log('%s: Target directory %s does not exist; creating.',
+                                           self.command_name, dest.parent)
+            dest.parent.mkdir(parents=True)
+
+        import shutil
+        shutil.copy(str(src), str(dest))
+
+
+@command_executor('remove_tree')
+class RemoveTreeCommand(AbstractCommand):
+    def validate(self, settings: dict):
+        path, err = self._setting(settings, 'path', True)
+        if err:
+            return err
+        if not path:
+            return "'path' may not be empty"
+
+    async def execute(self, settings: dict):
+        path = Path(settings['path'])
+        if not path.exists():
+            msg = 'Path %s does not exist, so not removing.' % path
+            self._log.debug(msg)
+            await self.worker.register_log(msg)
+            return
+
+        msg = 'Removing tree rooted at %s' % path
+        self._log.info(msg)
+        await self.worker.register_log(msg)
+
+        if path.is_dir():
+            import shutil
+            shutil.rmtree(str(path))
+        else:
+            path.unlink()
+
+
 @attr.s
 class AbstractSubprocessCommand(AbstractCommand):
     readline_timeout = attr.ib(default=SUBPROC_READLINE_TIMEOUT)
