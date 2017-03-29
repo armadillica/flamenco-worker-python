@@ -2,6 +2,17 @@
 
 This is the Flamenco Worker implemented in Python 3.
 
+Author: Sybren A. Stüvel <sybren@blender.studio>
+
+## Installation
+
+There are a few ways to install Flamenco Worker:
+
+- If you have a distributable zip file (see [Packaging for distribution](#Packaging-for-distribution))
+  unzip it, then run `pip install flamenco-worker-xxxx.whl`
+
+- If you have a copy of the source files, run `pip install -e .`
+
 
 ## Configuration
 
@@ -89,3 +100,10 @@ Flamenco Worker responds to the following POSIX signals:
 
 - `SIGINT`, `SIGTERM`: performs a clean shutdown, as described in the Shutdown section above.
 - `SIGUSR1`: logs the currently scheduled asyncio tasks.
+
+
+## Packaging for distribution
+
+Run `python setup.py zip` to create a distributable zip file. It contains the Wheel,
+example configuration file, this README.md, license information and system integration
+files.
