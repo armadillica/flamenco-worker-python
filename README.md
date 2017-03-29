@@ -8,7 +8,7 @@ Author: Sybren A. Stüvel <sybren@blender.studio>
 
 There are a few ways to install Flamenco Worker:
 
-- If you have a distributable zip file (see [Packaging for distribution](#Packaging-for-distribution))
+- If you have a distributable zip file (see [Packaging for distribution](#packaging-for-distribution))
   unzip it, then run `pip install flamenco-worker-xxxx.whl`
 
 - If you have a copy of the source files, run `pip install -e .`
