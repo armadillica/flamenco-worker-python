@@ -76,6 +76,7 @@ if __name__ == '__main__':
         author='Sybren A. Stüvel',
         author_email='sybren@blender.studio',
         packages=setuptools.find_packages(),
+        data_files=[('flamenco_worker', ['README.md', 'LICENSE.txt'])],
         license='GPL',
         classifiers=[
             'Operating System :: OS Independent',
