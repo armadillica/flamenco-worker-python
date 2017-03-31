@@ -42,5 +42,8 @@ class MergeProgressiveRendersCommandTest(AbstractCommandTest):
         # Assuming that if the files exist, the merge was ok.
         self.assertTrue(output.exists())
         self.assertTrue(output.is_file())
-        self.assertTrue(output.with_suffix('.jpg').exists())
-        self.assertTrue(output.with_suffix('.jpg').is_file())
+
+        # Sybren disabled preview generation since we don't use those any more
+        # in the studio.
+        # self.assertTrue(output.with_suffix('.jpg').exists())
+        # self.assertTrue(output.with_suffix('.jpg').is_file())
