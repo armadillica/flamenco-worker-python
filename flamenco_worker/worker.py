@@ -104,51 +104,89 @@ class FlamencoWorker:
             return None
         return self.task_id
 
-    async def startup(self, *, may_retry_register=True):
+    async def startup(self, *, may_retry_loop=True):
         self._log.info('Starting up')
 
-        if not self.worker_id or not self.worker_secret:
-            await self.register_at_manager(may_retry_loop=may_retry_register)
+        do_register = not self.worker_id or not self.worker_secret
+        if do_register:
+            await self.register_at_manager(may_retry_loop=may_retry_loop)
 
         # Once we know our ID and secret, update the manager object so that we
         # don't have to pass our authentication info each and every call.
         self.manager.auth = (self.worker_id, self.worker_secret)
+
+        # We only need to sign on if we didn't just register. However, this
+        # can only happen after setting self.manager.auth.
+        if not do_register:
+            await self.signon(may_retry_loop=may_retry_loop)
+
         self.schedule_fetch_task()
 
-    async def register_at_manager(self, *, may_retry_loop: bool):
-        import requests
+    @staticmethod
+    def hostname() -> str:
         import socket
+        return socket.gethostname()
 
+    async def _keep_posting_to_manager(self, url: str, json: dict, *, use_auth=True,
+                                       may_retry_loop: bool):
+        import requests
+
+        post_kwargs = {
+            'json': json,
+            'loop': self.loop,
+        }
+        if not use_auth:
+            post_kwargs['auth'] = None
+
+        while True:
+            try:
+                resp = await self.manager.post(url, **post_kwargs)
+                resp.raise_for_status()
+            except requests.RequestException as ex:
+                if not may_retry_loop:
+                    self._log.error('Unable to POST to manager %s: %s', url, ex)
+                    raise UnableToRegisterError()
+
+                self._log.warning('Unable to POST to manager %s, retrying in %i seconds: %s',
+                                  url, REGISTER_AT_MANAGER_FAILED_RETRY_DELAY, ex)
+                await asyncio.sleep(REGISTER_AT_MANAGER_FAILED_RETRY_DELAY)
+            else:
+                return resp
+
+    async def signon(self, *, may_retry_loop: bool):
+        """Signs on at the manager.
+
+        Only needed when we didn't just register.
+        """
+
+        self._log.info('Signing on at manager.')
+        await self._keep_posting_to_manager(
+            '/sign-on',
+            json={
+                'supported_task_types': self.task_types,
+                'nickname': self.hostname(),
+            },
+            may_retry_loop=may_retry_loop,
+        )
+        self._log.info('Manager accepted sign-on.')
+
+    async def register_at_manager(self, *, may_retry_loop: bool):
         self._log.info('Registering at manager')
 
         self.worker_secret = generate_secret()
         platform = detect_platform()
-        hostname = socket.gethostname()
 
-        while True:
-            try:
-                resp = await self.manager.post(
-                    '/register-worker',
-                    json={
-                        'secret': self.worker_secret,
-                        'platform': platform,
-                        'supported_task_types': self.task_types,
-                        'nickname': hostname,
-                    },
-                    auth=None,  # explicitly do not use authentication
-                    loop=self.loop,
-                )
-                resp.raise_for_status()
-            except requests.RequestException as ex:
-                if not may_retry_loop:
-                    self._log.error('Unable to register at manager: %s', ex)
-                    raise UnableToRegisterError()
-
-                self._log.warning('Unable to register at manager, retrying in %i seconds: %s',
-                                  REGISTER_AT_MANAGER_FAILED_RETRY_DELAY, ex)
-                await asyncio.sleep(REGISTER_AT_MANAGER_FAILED_RETRY_DELAY)
-            else:
-                break
+        resp = await self._keep_posting_to_manager(
+            '/register-worker',
+            json={
+                'secret': self.worker_secret,
+                'platform': platform,
+                'supported_task_types': self.task_types,
+                'nickname': self.hostname(),
+            },
+            use_auth=False,  # explicitly do not use authentication
+            may_retry_loop=may_retry_loop,
+        )
 
         result = resp.json()
         self._log.info('Response: %s', result)

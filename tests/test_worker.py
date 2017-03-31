@@ -56,11 +56,25 @@ class AbstractFWorkerTest(AbstractWorkerTest):
 
 class WorkerStartupTest(AbstractFWorkerTest):
     # Mock merge_with_home_config() so that it doesn't overwrite actual config.
+    @unittest.mock.patch('socket.gethostname')
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
-    def test_startup_already_registered(self, mock_merge_with_home_config):
-        self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_register=False))
+    def test_startup_already_registered(self, mock_merge_with_home_config, mock_gethostname):
+
+        from mock_responses import EmptyResponse, CoroMock
+
+        mock_gethostname.return_value = 'ws-unittest'
+        self.manager.post = CoroMock(return_value=EmptyResponse())
+
+        self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_loop=False))
         mock_merge_with_home_config.assert_not_called()  # Starting with known ID/secret
-        self.manager.post.assert_not_called()
+        self.manager.post.assert_called_once_with(
+            '/sign-on',
+            json={
+                'supported_task_types': ['sleep', 'unittest'],
+                'nickname': 'ws-unittest',
+            },
+            loop=self.asyncio_loop,
+        )
         self.tuqueue.queue.assert_not_called()
 
     @unittest.mock.patch('socket.gethostname')
@@ -76,7 +90,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
             '_id': '5555',
         }))
 
-        self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_register=False))
+        self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_loop=False))
         mock_merge_with_home_config.assert_called_once_with(
             {'worker_id': '5555',
              'worker_secret': self.worker.worker_secret}
@@ -113,7 +127,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
         # Mock merge_with_home_config() so that it doesn't overwrite actual config.
         self.assertRaises(UnableToRegisterError,
                           self.asyncio_loop.run_until_complete,
-                          self.worker.startup(may_retry_register=False))
+                          self.worker.startup(may_retry_loop=False))
         mock_merge_with_home_config.assert_not_called()
 
         assert isinstance(self.manager.post, unittest.mock.Mock)
