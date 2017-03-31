@@ -359,7 +359,7 @@ class CopyFileCommand(AbstractCommand):
 
         import shutil
         shutil.copy(str(src), str(dest))
-
+        self.worker.output_produced(dest)
 
 @command_executor('remove_tree')
 class RemoveTreeCommand(AbstractCommand):
@@ -499,6 +499,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
     re_remaining = attr.ib(init=False)
     re_status = attr.ib(init=False)
     re_path_not_found = attr.ib(init=False)
+    re_file_saved = attr.ib(init=False)
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -512,6 +513,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             r'\| Remaining:((?P<hours>\d+):)?(?P<minutes>\d+):(?P<seconds>\d+)\.(?P<hunds>\d+) ')
         self.re_status = re.compile(r'\| (?P<status>[^\|]+)\s*$')
         self.re_path_not_found = re.compile(r"Warning: Path '.*' not found")
+        self.re_file_saved = re.compile(r"Saved: '(?P<filename>.*)'")
 
     def validate(self, settings: dict):
         import shlex
@@ -625,6 +627,11 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
                 activity = line
             await self.worker.register_task_update(activity=activity)
 
+        # See if this line logs the saving of a file.
+        m = self.re_file_saved.search(line)
+        if m:
+            self.worker.output_produced(m.group('filename'))
+
         # Not a render progress line; just log it for now.
         return '> %s' % line
 
@@ -724,7 +731,10 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
             # move output files into the correct spot.
             await self.move(tmppath / 'merged0001.exr', output)
-            await self.move(tmppath / 'preview.jpg', output.with_suffix('.jpg'))
+            # await self.move(tmppath / 'preview.jpg', output.with_suffix('.jpg'))
+
+        # See if this line logs the saving of a file.
+        self.worker.output_produced(output)
 
     async def move(self, src: Path, dst: Path):
         """Moves a file to another location."""

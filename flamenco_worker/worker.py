@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import pathlib
 import typing
 
 import attr
@@ -302,7 +303,7 @@ class FlamencoWorker:
                 )
             elif self.failures_are_acceptable:
                 self._log.warning('Task %s failed, but ignoring it since we are shutting down.',
-                                self.task_id)
+                                  self.task_id)
             else:
                 self._log.error('Task %s failed', self.task_id)
                 await self.register_task_update(task_status='failed')
@@ -436,6 +437,29 @@ class FlamencoWorker:
             # Schedule a future push to manager.
             self._push_log_to_manager = asyncio.ensure_future(
                 self.push_to_manager(delay=self.push_log_max_interval))
+
+    def output_produced(self, *paths: typing.Union[str, pathlib.PurePath]):
+        """Registers a produced output (e.g. rendered frame) with the manager.
+
+        This performs a HTTP POST in a background task, returning as soon as
+        the task is scheduled.
+        """
+
+        async def do_post():
+            try:
+                self._log.info('Sending %i path(s) to Manager', len(paths))
+                resp = await self.manager.post('/output-produced',
+                                               json={'paths': [str(p) for p in paths]},
+                                               loop=self.loop)
+                if resp.status_code == 204:
+                    self._log.info('Manager accepted our output notification for %s', paths)
+                else:
+                    self._log.warning('Manager rejected our output notification: %d %s',
+                                      resp.status_code, resp.text)
+            except Exception:
+                self._log.exception('error POSTing to manager /output-produced')
+
+        self.loop.create_task(do_post())
 
 
 def generate_secret() -> str:
