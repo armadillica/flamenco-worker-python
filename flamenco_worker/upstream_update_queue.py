@@ -7,6 +7,7 @@ for efficient conversion of Python objects into a binary data blob.
 import asyncio
 import pickle
 import sqlite3
+import typing
 
 import attr
 
@@ -90,7 +91,7 @@ class TaskUpdateQueue:
             await self.flush_and_catch(loop=loop)
         self._log.warning('Stopping work loop')
 
-    def _queue(self) -> (int, str, object):
+    def _queue(self) -> typing.Iterable[typing.Tuple[int, str, object]]:
         """Yields (rowid, url, unpickled payload) tuples from the database."""
 
         if self._db is None:
