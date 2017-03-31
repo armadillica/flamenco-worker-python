@@ -56,7 +56,7 @@ def main():
         manager=fmanager,
         trunner=trunner,
         tuqueue=tuqueue,
-        job_types=confparser.value('job_types').split(),
+        task_types=confparser.value('task_types').split(),
         worker_id=confparser.value('worker_id'),
         worker_secret=confparser.value('worker_secret'),
         loop=loop,

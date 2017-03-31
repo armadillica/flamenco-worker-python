@@ -35,7 +35,7 @@ class AbstractFWorkerTest(AbstractWorkerTest):
             manager=self.manager,
             trunner=self.trunner,
             tuqueue=self.tuqueue,
-            job_types=['sleep', 'unittest'],
+            task_types=['sleep', 'unittest'],
             worker_id='1234',
             worker_secret='jemoeder',
             loop=self.asyncio_loop,
@@ -87,7 +87,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
             '/register-worker',
             json={
                 'platform': detect_platform(),
-                'supported_job_types': ['sleep', 'unittest'],
+                'supported_task_types': ['sleep', 'unittest'],
                 'secret': self.worker.worker_secret,
                 'nickname': 'ws-unittest',
             },
@@ -121,7 +121,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
             '/register-worker',
             json={
                 'platform': detect_platform(),
-                'supported_job_types': ['sleep', 'unittest'],
+                'supported_task_types': ['sleep', 'unittest'],
                 'secret': self.worker.worker_secret,
                 'nickname': 'ws-unittest',
             },
@@ -153,7 +153,8 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
             'name': 'sleep-14-26',
             'status': 'processing',
             'priority': 50,
-            'job_type': 'sleep',
+            'job_type': 'unittest',
+            'task_type': 'sleep',
             'commands': [
                 {'name': 'echo', 'settings': {'message': 'Preparing to sleep'}},
                 {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
@@ -211,7 +212,8 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
             'name': 'sleep-14-26',
             'status': 'processing',
             'priority': 50,
-            'job_type': 'sleep',
+            'job_type': 'unittest',
+            'task_type': 'sleep',
             'commands': [
                 {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
             ]
@@ -386,7 +388,7 @@ class WorkerShutdownTest(AbstractWorkerTest):
             manager=self.manager,
             trunner=self.trunner,
             tuqueue=self.tuqueue,
-            job_types=['sleep', 'unittest'],
+            task_types=['sleep', 'unittest'],
             worker_id='1234',
             worker_secret='jemoeder',
             loop=self.asyncio_loop,

@@ -15,7 +15,7 @@ CONFIG_SECTION = 'flamenco-worker'
 DEFAULT_CONFIG = {
     'flamenco-worker': collections.OrderedDict([
         ('manager_url', 'http://flamenco-manager/'),
-        ('job_types', 'sleep blender_render_simple'),
+        ('task_types', 'unknown sleep blender-render'),
         ('task_update_queue_db', 'flamenco-worker.db'),
         ('may_i_run_interval_seconds', '5'),
         ('worker_id', ''),

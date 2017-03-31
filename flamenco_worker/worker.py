@@ -33,7 +33,7 @@ class FlamencoWorker:
     manager = attr.ib(validator=attr.validators.instance_of(upstream.FlamencoManager))
     trunner = attr.ib()  # Instance of flamenco_worker.runner.TaskRunner
     tuqueue = attr.ib(validator=attr.validators.instance_of(upstream_update_queue.TaskUpdateQueue))
-    job_types = attr.ib(validator=attr.validators.instance_of(list))
+    task_types = attr.ib(validator=attr.validators.instance_of(list))
     worker_id = attr.ib(validator=attr.validators.instance_of(str))
     worker_secret = attr.ib(validator=attr.validators.instance_of(str))
 
@@ -132,7 +132,7 @@ class FlamencoWorker:
                     json={
                         'secret': self.worker_secret,
                         'platform': platform,
-                        'supported_job_types': self.job_types,
+                        'supported_task_types': self.task_types,
                         'nickname': hostname,
                     },
                     auth=None,  # explicitly do not use authentication
