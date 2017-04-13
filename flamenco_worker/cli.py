@@ -4,8 +4,34 @@ import argparse
 import asyncio
 import logging
 import logging.config
+import pathlib
 
 import requests
+
+
+def create_pidfile(path: pathlib.Path):
+    """Creates a PID file in the given location.
+
+    Als uses the atexit module to remove the PID file once the process is terminated.
+    """
+
+    import atexit
+    import os
+
+    def remove_pidfile():
+        if path.exists():
+            path.unlink()
+
+    atexit.register(remove_pidfile)
+
+    log = logging.getLogger(__name__)
+    pid = os.getpid()
+
+    if path.exists():
+        log.info('Overwriting PID file %s with our PID %i', path, pid)
+    else:
+        log.info('Creating PID file %s with our PID %i', path, pid)
+    path.write_text(str(pid), encoding='ascii')
 
 
 def main():
@@ -24,6 +50,13 @@ def main():
 
     log = logging.getLogger(__name__)
     log.debug('Starting')
+
+    # Create the PID file, if the location is configured.
+    pidfile = confparser.value('pid')
+    if pidfile:
+        create_pidfile(pathlib.Path(pidfile))
+    else:
+        log.info("Not creating PID file because the configuration has no value for the 'pid' key.")
 
     # Patch AsyncIO
     from . import patch_asyncio

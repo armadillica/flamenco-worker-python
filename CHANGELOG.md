@@ -4,6 +4,12 @@ This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
 
+## Version 2.0.3 (under development)
+
+- Added optional creation and removal of a PID file. This only happens when the `pid`
+  configuration option is given, pointing to the location of the PID file.
+
+
 ## Version 2.0.2 (released 2017-04-07)
 
 - Added support for task types. Workers only get tasks of the types they support.

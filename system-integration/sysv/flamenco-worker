@@ -21,7 +21,7 @@ DESC="Flamenco Worker"
 NAME=flamenco-worker
 DAEMON=$FLAMENCO_WORKER
 SCRIPTNAME=/etc/init.d/$NAME
-PIDFILE=/var/run/$NAME.pid
+PIDFILE=/home/guest/local-flamenco-worker/$NAME.pid
 USER=guest
 GROUP=guest
 
@@ -38,7 +38,7 @@ do_start()
 {
     sudo -u $USER mkdir -p /home/guest/local-flamenco-worker
     start-stop-daemon --start --quiet --pidfile $PIDFILE --name $NAME \
-        --exec $DAEMON --chuid $USER:$GROUP --chdir $WORK_DIR --make-pidfile --background
+        --exec $DAEMON --chuid $USER:$GROUP --chdir $WORK_DIR --background
     return "$?"
 }
 

@@ -14,6 +14,7 @@ CONFIG_SECTION = 'flamenco-worker'
 
 DEFAULT_CONFIG = {
     'flamenco-worker': collections.OrderedDict([
+        ('pid', ''),  # Optional location of the PID-file
         ('manager_url', 'http://flamenco-manager/'),
         ('task_types', 'unknown sleep blender-render'),
         ('task_update_queue_db', 'flamenco-worker.db'),

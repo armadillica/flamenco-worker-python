@@ -36,6 +36,11 @@ config files.
 - `job_types`: Space-separated list of job types this worker may execute.
 - `task_update_queue_db`: filename of the SQLite3 database holding the queue of task
   updates to be sent to the Master.
+- `pid`: Location of the PID file that'll be created when Flamenco-Worker is running,
+  and removed on startup. It'll contain the process ID. This is required when using the
+  SysV service script. When not present (or with empty value), the PID file will neither
+  be created nor removed.
+
 These configuration keys are also required, but are created automatically upon startup
 when they don't exist yet:
 
