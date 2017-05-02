@@ -54,6 +54,7 @@ class ZipCommand(Command):
             add_to_root(Path('flamenco-worker.cfg'))
             add_to_root(Path('LICENSE.txt'))
             add_to_root(Path('README.md'))
+            add_to_root(Path('CHANGELOG.md'))
 
             paths = collections.deque([Path('system-integration')])
             while paths:
@@ -76,7 +77,7 @@ if __name__ == '__main__':
         author='Sybren A. Stüvel',
         author_email='sybren@blender.studio',
         packages=setuptools.find_packages(),
-        data_files=[('flamenco_worker', ['README.md', 'LICENSE.txt'])],
+        data_files=[('flamenco_worker', ['README.md', 'LICENSE.txt', 'CHANGELOG.md'])],
         license='GPL',
         classifiers=[
             'Operating System :: OS Independent',
