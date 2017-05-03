@@ -3,13 +3,13 @@
 import collections
 import configparser
 import datetime
-import os.path
+import pathlib
 import logging
 
 from . import worker
 
-HOME_CONFIG_FILE = os.path.expanduser('~/.flamenco-worker.cfg')
-GLOBAL_CONFIG_FILE = 'flamenco-worker.cfg'
+HOME_CONFIG_FILE = pathlib.Path('~/.flamenco-worker.cfg').expanduser()
+GLOBAL_CONFIG_FILE = pathlib.Path('./flamenco-worker.cfg').absolute()
 CONFIG_SECTION = 'flamenco-worker'
 
 DEFAULT_CONFIG = {
@@ -56,18 +56,18 @@ def merge_with_home_config(new_conf: dict):
     for key, value in new_conf.items():
         confparser.set(CONFIG_SECTION, key, value)
 
-    tmpname = HOME_CONFIG_FILE + '~'
+    tmpname = HOME_CONFIG_FILE.with_name(HOME_CONFIG_FILE.name + '~')
     log.debug('Writing configuration file to %s', tmpname)
     with open(tmpname, mode='wt', encoding='utf8') as outfile:
         confparser.write(outfile)
 
     log.debug('Moving configuration file to %s', HOME_CONFIG_FILE)
-    os.replace(tmpname, HOME_CONFIG_FILE)
+    tmpname.replace(HOME_CONFIG_FILE)
 
     log.info('Updated configuration file %s', HOME_CONFIG_FILE)
 
 
-def load_config(config_file: str = None,
+def load_config(config_file: pathlib.Path = None,
                 show_effective_config: bool = False) -> ConfigParser:
     """Loads one or more configuration files."""
 
@@ -80,11 +80,19 @@ def load_config(config_file: str = None,
 
     if config_file:
         log.info('Loading configuration from %s', config_file)
+        if not config_file.exists():
+            log.fatal('Config file %s does not exist', config_file)
+            raise SystemExit()
         loaded = confparser.read(config_file, encoding='utf8')
     else:
+        if not GLOBAL_CONFIG_FILE.exists():
+            log.fatal('Config file %s does not exist', GLOBAL_CONFIG_FILE)
+            raise SystemExit()
+
         config_files = [GLOBAL_CONFIG_FILE, HOME_CONFIG_FILE]
-        log.info('Loading configuration from %s', ', '.join(config_files))
-        loaded = confparser.read(config_files, encoding='utf8')
+        filenames = [str(f.absolute()) for f in config_files]
+        log.info('Loading configuration from %s', ', '.join(filenames))
+        loaded = confparser.read(filenames, encoding='utf8')
 
     log.info('Succesfully loaded: %s', loaded)
 

@@ -3,6 +3,13 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.3 (released 2017-04-07)
+
+- Made the `flamenco-worker.cfg` file mandatory, as this makes debugging configuration
+  issues easier. When the file does not exist, the absolute path of its expected
+  location is logged.
+
+
 
 ## Version 2.0.2 (released 2017-04-07)
 

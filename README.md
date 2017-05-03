@@ -20,24 +20,24 @@ Configuration is read from three locations:
 
 - A hard-coded default in the Python source code.
 - `flamenco-worker.cfg` in the current working directory.
-- `$HOME/.flamenco-worker.cfg`.
+- `$HOME/.flamenco-worker.cfg`; this file is optional.
 
-When those files do not exist, they are skipped (i.e. this is not an error). They
-should be in INI format, as specified by the
+The configuration files should be in INI format, as specified by the
 [configparser documentation](https://docs.python.org/3/library/configparser.html)
 
 
 ### Configuration contents:
 
 All configuration keys should be placed in the `[flamenco-worker]` section of the
-config files.
+config files. At least take a look at:
 
 - `manager_url`: Flamenco Manager URL.
-- `job_types`: Space-separated list of job types this worker may execute.
+- `task_types`: Space-separated list of task types this worker may execute.
 - `task_update_queue_db`: filename of the SQLite3 database holding the queue of task
   updates to be sent to the Master.
-These configuration keys are also required, but are created automatically upon startup
-when they don't exist yet:
+
+These configuration keys are also required, but are created automatically in
+`$HOME/.flamenco-worker.cfg` when they don't exist yet:
 
 - `worker_id`: ID of the worker, handed out by the Manager upon registration (see
   Registration below) and used for authentication with the Manager.

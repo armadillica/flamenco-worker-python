@@ -4,13 +4,14 @@ import argparse
 import asyncio
 import logging
 import logging.config
+import pathlib
 
 import requests
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config',
+    parser.add_argument('-c', '--config', type=pathlib.Path,
                         help='Load this configuration file instead of the default files.')
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Show configuration before starting, '
