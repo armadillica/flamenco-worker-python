@@ -6,12 +6,14 @@ Author: Sybren A. Stüvel <sybren@blender.studio>
 
 ## Installation
 
-There are a few ways to install Flamenco Worker:
+Before you begin, make sure you have Flamenco Manager up and running.
+
+There are two ways to install Flamenco Worker:
 
 - If you have a distributable zip file (see [Packaging for distribution](#packaging-for-distribution))
-  unzip it, then run `pip install flamenco_worker-xxxx.whl`
+  unzip it, then run `pip3 install flamenco_worker-xxxx.whl`
 
-- If you have a copy of the source files, run `pip install -e .`
+- If you have a copy of the source files, run `pip3 install -e .`
 
 
 ## Configuration
@@ -19,7 +21,8 @@ There are a few ways to install Flamenco Worker:
 Configuration is read from three locations:
 
 - A hard-coded default in the Python source code.
-- `flamenco-worker.cfg` in the current working directory.
+- `flamenco-worker.cfg` in the current working directory, i.e. the directory that your shell
+  is in when you invoke the `flamenco-worker` command.
 - `$HOME/.flamenco-worker.cfg`; this file is optional.
 
 The configuration files should be in INI format, as specified by the
@@ -53,9 +56,10 @@ These configuration keys are also required, but are created automatically in
 
 ## Invocation
 
-Install using `pip install -e .` for development, or `setup.py install` for production.
+Install using `pip3 install -e .` for development, or `python3 setup.py install` for production.
 This creates a command `flamenco-worker`, which can be run with `--help` to obtain
 a list of possible CLI arguments.
+
 
 ## Registration
 
