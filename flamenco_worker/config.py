@@ -51,14 +51,14 @@ def merge_with_home_config(new_conf: dict):
 
     confparser = ConfigParser()
     confparser.read_dict({CONFIG_SECTION: {}})
-    confparser.read(HOME_CONFIG_FILE, encoding='utf8')
+    confparser.read(str(HOME_CONFIG_FILE), encoding='utf8')
 
     for key, value in new_conf.items():
         confparser.set(CONFIG_SECTION, key, value)
 
     tmpname = HOME_CONFIG_FILE.with_name(HOME_CONFIG_FILE.name + '~')
     log.debug('Writing configuration file to %s', tmpname)
-    with open(tmpname, mode='wt', encoding='utf8') as outfile:
+    with tmpname.open(mode='wt', encoding='utf8') as outfile:
         confparser.write(outfile)
 
     log.debug('Moving configuration file to %s', HOME_CONFIG_FILE)
