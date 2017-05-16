@@ -3,6 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.5 (in development)
+
+- Vacuum SQLite database at startup.
+
+
 ## Version 2.0.4 (released 201-05-09)
 
 - Fixed bug in writing ~/.flamenco-worker.cfg

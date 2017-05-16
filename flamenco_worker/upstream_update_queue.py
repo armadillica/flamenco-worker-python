@@ -38,6 +38,9 @@ class TaskUpdateQueue:
         # We don't need to create a primary key; we use the implicit 'rowid' column.
         self._db.execute('CREATE TABLE IF NOT EXISTS fworker_queue(url TEXT, payload BLOB)')
 
+        # Start with a more-or-less compact database.
+        self._db.execute('VACUUM')
+
     def _disconnect_db(self):
         self._log.info('Disconnecting from database %s', self.db_fname)
         self._db.close()
