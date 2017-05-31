@@ -6,6 +6,8 @@ changed functionality, fixed bugs).
 ## Version 2.0.5 (in development)
 
 - Vacuum SQLite database at startup.
+- Removed `--factory-startup` from the default Blender command. This can be passed
+  to the Worker using the {blender} variable definition instead.
 
 
 ## Version 2.0.4 (released 201-05-09)

@@ -90,7 +90,6 @@ class BlenderRenderTest(AbstractCommandTest):
                 __file__,
                 '--with',
                 '--cli=args for CLI',
-                '--factory-startup',
                 '--enable-autoexec',
                 '-noaudio',
                 '--background',

@@ -560,7 +560,6 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
     def _build_blender_cmd(self, settings):
         cmd = settings['blender_cmd'][:]
         cmd += [
-            '--factory-startup',
             '--enable-autoexec',
             '-noaudio',
             '--background',
