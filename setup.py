@@ -2,6 +2,7 @@
 
 from pathlib import Path
 import collections
+import hashlib
 import setuptools
 import sys
 import zipfile
@@ -66,7 +67,18 @@ class ZipCommand(Command):
                 log.info('    adding %s', this_path)
                 archive.write(str(this_path), str(this_path))
 
-
+        # Compute SHA256 checksum of the produced zip file.
+        hasher = hashlib.sha256()
+        blocksize = 65536
+        with zip_name.open(mode='rb') as infile:
+            buf = infile.read(blocksize)
+            while len(buf) > 0:
+                hasher.update(buf)
+                buf = infile.read(blocksize)
+        checksum_path = zip_name.with_suffix('.sha256')
+        log.info('Writing SHA256 checksum to %s', checksum_path)
+        with checksum_path.open(mode='w') as shafile:
+            print('%s  %s' % (hasher.hexdigest(), zip_name.name), file=shafile)
 
 if __name__ == '__main__':
     setuptools.setup(
