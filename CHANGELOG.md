@@ -3,6 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.6 (in development)
+
+- Fixed incompatibility with attrs version 17.1+.
+
+
 ## Version 2.0.5 (released 2017-05-09)
 
 - Vacuum SQLite database at startup.

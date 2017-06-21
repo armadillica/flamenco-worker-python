@@ -36,9 +36,8 @@ class FlamencoManager:
     async def patch(self, *args, loop, **kwargs) -> requests.Response:
         return await self.client_request('PATCH', *args, loop=loop, **kwargs)
 
-    @functools.lru_cache(1)
-    def user_agent(self):
-        return 'Flamenco-Worker/%s' % self.flamenco_worker_version
+    def __attrs_post_init__(self):
+        self.user_agent = 'Flamenco-Worker/%s' % self.flamenco_worker_version
 
     async def client_request(self, method, url, *,
                              params=None,
@@ -83,7 +82,7 @@ class FlamencoManager:
 
         if headers is None:
             headers = {}
-        headers['User-Agent'] = self.user_agent()
+        headers['User-Agent'] = self.user_agent
 
         http_req = partial(self.session.request,
                            method, abs_url,
