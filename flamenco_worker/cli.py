@@ -16,6 +16,10 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Show configuration before starting, '
                              'and asyncio task status at shutdown.')
+    parser.add_argument('-r', '--reregister', action='store_true',
+                        help="Erases authentication information and re-registers this worker "
+                             "at the Manager. WARNING: this can cause duplicate worker information "
+                             "in the Manager's database.")
     args = parser.parse_args()
 
     # Load configuration
@@ -25,6 +29,11 @@ def main():
 
     log = logging.getLogger(__name__)
     log.debug('Starting')
+
+    if args.reregister:
+        log.warning('Erasing worker_id and worker_secret so we can attempt re-registration.')
+        confparser.erase('worker_id')
+        confparser.erase('worker_secret')
 
     # Patch AsyncIO
     from . import patch_asyncio

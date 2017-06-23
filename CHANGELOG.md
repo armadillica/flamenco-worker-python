@@ -6,6 +6,8 @@ changed functionality, fixed bugs).
 ## Version 2.0.6 (in development)
 
 - Fixed incompatibility with attrs version 17.1+.
+- Added `--reregister` CLI option to re-register this worker at its Manager.
+  WARNING: this can cause duplicate worker information in the Manager's database.
 
 
 ## Version 2.0.5 (released 2017-05-09)

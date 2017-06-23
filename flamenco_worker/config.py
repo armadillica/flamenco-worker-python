@@ -45,6 +45,9 @@ class ConfigParser(configparser.ConfigParser):
         secs = self.value(key, float)
         return datetime.timedelta(seconds=secs)
 
+    def erase(self, key: str) -> bool:
+        return self.set(CONFIG_SECTION, key, '')
+
 
 def merge_with_home_config(new_conf: dict):
     """Updates the home configuration file with the given config dict."""
