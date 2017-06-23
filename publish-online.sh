@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-FLAMENCO_VERSION=2.0.5
+FLAMENCO_VERSION="2.0.6"
 echo "Uploading Flamenco Worker $FLAMENCO_VERSION to flamenco.io"
 
 cd dist
