@@ -96,7 +96,10 @@ def main():
     import signal
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGUSR1, asyncio_report_tasks)
+
+    if hasattr(signal, 'SIGUSR1'):
+        # Windows doesn't have a USR1 signal.
+        signal.signal(signal.SIGUSR1, asyncio_report_tasks)
 
     # Start asynchronous tasks.
     asyncio.ensure_future(tuqueue.work(loop=loop))
