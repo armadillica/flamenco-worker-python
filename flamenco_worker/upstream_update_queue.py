@@ -33,13 +33,16 @@ class TaskUpdateQueue:
 
     def _connect_db(self):
         self._log.info('Connecting to database %s', self.db_fname)
-        self._db = sqlite3.connect(self.db_fname)
+        self._db = sqlite3.connect(self.db_fname, isolation_level=None)
 
         # We don't need to create a primary key; we use the implicit 'rowid' column.
         self._db.execute('CREATE TABLE IF NOT EXISTS fworker_queue(url TEXT, payload BLOB)')
 
         # Start with a more-or-less compact database.
         self._db.execute('VACUUM')
+
+        # Now that that is out of the way, we can use the default SQLite behaviour again.
+        self._db.isolation_level = ''
 
     def _disconnect_db(self):
         self._log.info('Disconnecting from database %s', self.db_fname)
