@@ -9,15 +9,19 @@ This prevents an error at the end of a subprocess execution:
 
 """
 
-import asyncio.unix_events as ue
-
 
 def patch_asyncio():
     import logging
+    import sys
 
     log = logging.getLogger(__name__)
+    if sys.platform == 'win32':
+        log.debug('Patching ue._UnixReadPipeTransport.resume_reading not needed on Windows')
+        return
+
     log.debug('Patching ue._UnixReadPipeTransport.resume_reading')
 
+    import asyncio.unix_events as ue
     orig_resume_reading = ue._UnixReadPipeTransport.resume_reading
 
     def resume_reading(self, *args, **kwargs):
