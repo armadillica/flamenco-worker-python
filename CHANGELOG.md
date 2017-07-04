@@ -3,10 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.0.7 (in development)
+## Version 2.0.7 (released 2017-07-04)
 
 - Use UPnP/SSDP to automatically find Manager when manager_url is empty.
   This is now also the new default, since we can't provide a sane default URL anyway.
+  Requires Flamenco Manager 2.0.13 or newer.
 - Fixed Windows incompatibilities.
 
 
