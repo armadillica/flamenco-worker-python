@@ -3,6 +3,12 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.7 (in development)
+
+- Use UPnP/SSDP to automatically find Manager when manager_url is empty.
+  This is now also the new default, since we can't provide a sane default URL anyway.
+
+
 ## Version 2.0.6 (released 2017-06-23)
 
 - Fixed incompatibility with attrs version 17.1+.

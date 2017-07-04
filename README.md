@@ -34,7 +34,8 @@ The configuration files should be in INI format, as specified by the
 All configuration keys should be placed in the `[flamenco-worker]` section of the
 config files. At least take a look at:
 
-- `manager_url`: Flamenco Manager URL.
+- `manager_url`: Flamenco Manager URL. Leave blank to auto-discover Flamenco Manager
+  on your network using UPnP/SSDP.
 - `task_types`: Space-separated list of task types this worker may execute.
 - `task_update_queue_db`: filename of the SQLite3 database holding the queue of task
   updates to be sent to the Master.

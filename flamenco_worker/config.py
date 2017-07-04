@@ -14,7 +14,7 @@ CONFIG_SECTION = 'flamenco-worker'
 
 DEFAULT_CONFIG = {
     'flamenco-worker': collections.OrderedDict([
-        ('manager_url', 'http://flamenco-manager/'),
+        ('manager_url', ''),
         ('task_types', 'unknown sleep blender-render'),
         ('task_update_queue_db', 'flamenco-worker.db'),
         ('may_i_run_interval_seconds', '5'),
@@ -38,6 +38,9 @@ class ConfigParser(configparser.ConfigParser):
 
     def value(self, key, valtype: type=str):
         return valtype(self.get(CONFIG_SECTION, key))
+
+    def setvalue(self, key, value):
+        self.set(CONFIG_SECTION, key, value)
 
     def interval_secs(self, key) -> datetime.timedelta:
         """Returns the configuration value as timedelta."""

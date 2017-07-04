@@ -35,6 +35,19 @@ def main():
         confparser.erase('worker_id')
         confparser.erase('worker_secret')
 
+    # Find the Manager using UPnP/SSDP if we have no manager_url.
+    if not confparser.value('manager_url'):
+        from . import ssdp_discover
+
+        try:
+            manager_url = ssdp_discover.find_flamenco_manager()
+        except ssdp_discover.DiscoveryFailed:
+            log.fatal('Unable to find Flamenco Manager via UPnP/SSDP.')
+            raise SystemExit(1)
+
+        log.info('Found Flamenco Manager at %s', manager_url)
+        confparser.setvalue('manager_url', manager_url)
+
     # Patch AsyncIO
     from . import patch_asyncio
     patch_asyncio.patch_asyncio()
