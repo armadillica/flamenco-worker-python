@@ -7,6 +7,7 @@ changed functionality, fixed bugs).
 
 - Use UPnP/SSDP to automatically find Manager when manager_url is empty.
   This is now also the new default, since we can't provide a sane default URL anyway.
+- Fixed Windows incompatibilities.
 
 
 ## Version 2.0.6 (released 2017-06-23)
