@@ -89,7 +89,7 @@ def load_config(config_file: pathlib.Path = None,
         if not config_file.exists():
             log.fatal('Config file %s does not exist', config_file)
             raise SystemExit()
-        loaded = confparser.read(config_file, encoding='utf8')
+        loaded = confparser.read(str(config_file), encoding='utf8')
     else:
         if not GLOBAL_CONFIG_FILE.exists():
             log.fatal('Config file %s does not exist', GLOBAL_CONFIG_FILE)
