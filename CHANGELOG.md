@@ -3,6 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.8 (in development)
+
+- Fixed parsing of `--config` CLI param on Python 3.5
+
+
 ## Version 2.0.7 (released 2017-07-04)
 
 - Use UPnP/SSDP to automatically find Manager when manager_url is empty.
