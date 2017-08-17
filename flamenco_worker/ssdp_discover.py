@@ -64,7 +64,7 @@ def find_flamenco_manager(timeout=1, retries=5):
                 log.warning('Unknown address family %s, skipping', family)
                 continue
 
-            log.debug('Sending to %s %s' % (family, addr))
+            log.debug('Sending to %s %s, dest=%s' % (family, addr, dest))
 
             sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
