@@ -6,6 +6,8 @@ changed functionality, fixed bugs).
 ## Version 2.0.8 (in development)
 
 - Fixed parsing of `--config` CLI param on Python 3.5
+- Added `--debug` CLI parameter to easily enable debug logging without having
+  to edit `flamenco-worker.cfg`.
 
 
 ## Version 2.0.7 (released 2017-07-04)

@@ -116,8 +116,12 @@ def load_config(config_file: pathlib.Path = None,
     return confparser
 
 
-def configure_logging(confparser: configparser.ConfigParser):
+def configure_logging(confparser: configparser.ConfigParser, enable_debug: bool):
     import logging.config
 
     logging.config.fileConfig(confparser, disable_existing_loggers=True)
     logging.captureWarnings(capture=True)
+
+    if enable_debug:
+        logging.getLogger('flamenco_worker').setLevel(logging.DEBUG)
+        log.debug('Enabling debug logging')

@@ -20,12 +20,16 @@ def main():
                         help="Erases authentication information and re-registers this worker "
                              "at the Manager. WARNING: this can cause duplicate worker information "
                              "in the Manager's database.")
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help="Enables debug logging for Flamenco Worker's own log entries. "
+                             "Edit the logging config in flamenco-worker.cfg "
+                             "for more powerful options.")
     args = parser.parse_args()
 
     # Load configuration
     from . import config
     confparser = config.load_config(args.config, args.verbose)
-    config.configure_logging(confparser)
+    config.configure_logging(confparser, enable_debug=args.debug)
 
     log = logging.getLogger(__name__)
     log.debug('Starting')
