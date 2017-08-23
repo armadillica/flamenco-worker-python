@@ -57,6 +57,8 @@ def find_flamenco_manager(timeout=1, retries=5):
     families_and_addresses = list(unique(interface_addresses()))
 
     for _ in range(retries):
+        failed_families = 0
+
         for family, addr in families_and_addresses:
             try:
                 dest = DESTINATIONS[family]
@@ -64,17 +66,23 @@ def find_flamenco_manager(timeout=1, retries=5):
                 log.warning('Unknown address family %s, skipping', family)
                 continue
 
-            log.debug('Sending to %s %s, dest=%s' % (family, addr, dest))
+            log.debug('Sending to %s %s, dest=%s', family, addr, dest)
 
             sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
             sock.bind((addr, 0))
 
-            for _ in range(2):
-                # sending it more than once will
-                # decrease the probability of a timeout
-                sock.sendto(DISCOVERY_MSG, (dest, 1900))
+            try:
+                for _ in range(2):
+                    # sending it more than once will
+                    # decrease the probability of a timeout
+                    sock.sendto(DISCOVERY_MSG, (dest, 1900))
+            except PermissionError:
+                log.info('Failed sending UPnP/SSDP discovery message to %s %s, dest=%s',
+                         family, addr, dest)
+                failed_families += 1
+                continue
 
             try:
                 data = sock.recv(1024)
@@ -83,6 +91,11 @@ def find_flamenco_manager(timeout=1, retries=5):
             else:
                 response = Response(data)
                 return response.getheader('Location')
+
+        if failed_families >= len(families_and_addresses):
+            log.error('Failed to send UPnP/SSDP discovery message '
+                      'to every address family (IPv4/IPv6)')
+            break
 
     raise DiscoveryFailed('Unable to find Flamenco Manager after %i tries' % retries)
 

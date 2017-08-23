@@ -8,6 +8,7 @@ changed functionality, fixed bugs).
 - Fixed parsing of `--config` CLI param on Python 3.5
 - Added `--debug` CLI parameter to easily enable debug logging without having
   to edit `flamenco-worker.cfg`.
+- Only fail UPnP/SSDP discovery when it fails to send on both IPv4 and IPv6.
 
 
 ## Version 2.0.7 (released 2017-07-04)
