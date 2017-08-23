@@ -117,3 +117,8 @@ Flamenco Worker responds to the following POSIX signals:
 Run `python setup.py zip` to create a distributable zip file. It contains the Wheel,
 example configuration file, this README.md, license information and system integration
 files.
+
+Run `pyinstaller flamenco-worker.spec` to create a distributable directory in
+`dist/flamenco-worker-{version}` that contains a directly runnable Flamenco Worker.
+This build then doesn't require installing Python or any dependencies, and can be
+directly run on a target machine of the same OS.
