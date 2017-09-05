@@ -9,6 +9,7 @@ changed functionality, fixed bugs).
 - Added `--debug` CLI parameter to easily enable debug logging without having
   to edit `flamenco-worker.cfg`.
 - Only fail UPnP/SSDP discovery when it fails to send on both IPv4 and IPv6.
+- Creating distribution files using [PyInstaller](http://www.pyinstaller.org/).
 
 
 ## Version 2.0.7 (released 2017-07-04)

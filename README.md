@@ -11,9 +11,9 @@ Before you begin, make sure you have Flamenco Manager up and running.
 There are two ways to install Flamenco Worker:
 
 - If you have a distributable zip file (see [Packaging for distribution](#packaging-for-distribution))
-  unzip it, then run `pip3 install flamenco_worker-xxxx.whl`
+  unzip it, `cd` into it, then run `./flamenco-worker` (or `flamenco-worker.exe` on Windows).
 
-- If you have a copy of the source files, run `pip3 install -e .`
+- If you have a copy of the source files, run `pip3 install -e .` then run `flamenco-worker`.
 
 
 ## Configuration
