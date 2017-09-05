@@ -114,10 +114,9 @@ Flamenco Worker responds to the following POSIX signals:
 
 ## Packaging for distribution
 
-Run `pyinstaller flamenco-worker.spec` to create a distributable directory in
-`dist/flamenco-worker-{version}` that contains a directly runnable Flamenco Worker.
-This build then doesn't require installing Python or any dependencies, and can be
-directly run on a target machine of the same OS.
+Run `mkdistfile.py` to create a distributable archive (`.zip` on Windows, `.tar.gz` on Linux and
+macOS) containing a runnable Flamenco Worker. This build doesn't require installing Python or any
+dependencies, and can be directly run on a target machine of the same OS.
 
 NOTE: pyinstaller must be run on each supported platform, to create files for that platform. It
 cannot cross-build.
