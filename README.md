@@ -87,11 +87,11 @@ Once registered via a POST to the manager's `/register-worker` endpoint, the `wo
 
 ## Shutdown
 
-Pressing [CTRL]+[C] will cause a clean shutdown of the worker.
-If there is a task currently running, it will be aborted without changing its status. Any pending task updates are sent to the Manager, and then the Manager's `/sign-off` URL is
-POSTed to, to indicate a clean shutdown of the worker. Any active task that is still
-assigned to the worker is given status "claimed-by-manager" so that it can be re-activated
-by another worker.
+Pressing [CTRL]+[C] will cause a clean shutdown of the worker. If there is a task currently running,
+it will be aborted without changing its status. Any pending task updates are sent to the Manager,
+and then the Manager's `/sign-off` URL is POSTed to, to indicate a clean shutdown of the worker. Any
+active task that is still assigned to the worker is given status "claimed-by-manager" so that it can
+be re-activated by another worker.
 
 
 ## Systemd integration
