@@ -36,8 +36,8 @@ class Response(HTTPResponse):
 
 def interface_addresses():
     for dest in ('0.0.0.0', '::'):
-        for family, _, _, _, sockaddr in socket.getaddrinfo(dest, None):
-            yield family, sockaddr[0]
+        for family, _, _, _, _ in socket.getaddrinfo(dest, None):
+            yield family
 
 
 def find_flamenco_manager(timeout=1, retries=5):
@@ -48,20 +48,20 @@ def find_flamenco_manager(timeout=1, retries=5):
     for _ in range(retries):
         failed_families = 0
 
-        for family, addr in families_and_addresses:
+        for family in families_and_addresses:
             try:
                 dest = DESTINATIONS[family]
             except KeyError:
                 log.warning('Unknown address family %s, skipping', family)
                 continue
 
-            log.debug('Sending to %s %s, dest=%s', family, addr, dest)
+            log.debug('Sending to %s, dest=%s', family, dest)
 
             sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.settimeout(timeout)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
-            sock.bind((addr, 0))
+            sock.bind(('', 1901))
 
             try:
                 for _ in range(2):
@@ -69,8 +69,7 @@ def find_flamenco_manager(timeout=1, retries=5):
                     # decrease the probability of a timeout
                     sock.sendto(DISCOVERY_MSG, (dest, 1900))
             except PermissionError:
-                log.info('Failed sending UPnP/SSDP discovery message to %s %s, dest=%s',
-                         family, addr, dest)
+                log.info('Failed sending UPnP/SSDP discovery message to %s, dest=%s', family, dest)
                 failed_families += 1
                 continue
 
