@@ -67,7 +67,13 @@ def find_flamenco_manager(timeout=1, retries=5):
             except OSError:
                 # Not supported on Windows and AF_INET6.
                 pass
+
             sock.bind(('', 1901))
+
+            # Required on Windows, otherwise the message won't go out.
+            if family == socket.AF_INET:
+                host = socket.gethostbyname(socket.gethostname())
+                sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
 
             try:
                 for _ in range(2):
