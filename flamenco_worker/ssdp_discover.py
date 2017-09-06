@@ -40,20 +40,10 @@ def interface_addresses():
             yield family, sockaddr[0]
 
 
-def unique(addresses):
-    seen = set()
-    for family_addr in addresses:
-        if family_addr in seen:
-            continue
-
-        seen.add(family_addr)
-        yield family_addr
-
-
 def find_flamenco_manager(timeout=1, retries=5):
     log.info('Finding Flamenco Manager through UPnP/SSDP discovery.')
 
-    families_and_addresses = list(unique(interface_addresses()))
+    families_and_addresses = set(interface_addresses())
 
     for _ in range(retries):
         failed_families = 0
