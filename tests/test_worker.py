@@ -43,6 +43,18 @@ class AbstractFWorkerTest(AbstractWorkerTest):
         )
 
     def tearDown(self):
+        if self.worker._push_act_to_manager is not None:
+            try:
+                self.asyncio_loop.run_until_complete(self.worker._push_act_to_manager)
+            except asyncio.CancelledError:
+                pass
+
+        if self.worker._push_log_to_manager is not None:
+            try:
+                self.asyncio_loop.run_until_complete(self.worker._push_log_to_manager)
+            except asyncio.CancelledError:
+                pass
+
         self.shutdown_future.cancel()
         self.worker.shutdown()
         self.asyncio_loop.close()

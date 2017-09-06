@@ -444,7 +444,7 @@ class FlamencoWorker:
         elif self._push_act_to_manager is None or self._push_act_to_manager.done():
             # Schedule a future push to manager.
             self._push_act_to_manager = asyncio.ensure_future(
-                await self.push_to_manager(delay=self.push_act_max_interval))
+                self.push_to_manager(delay=self.push_act_max_interval))
 
     async def register_log(self, log_entry, *fmt_args):
         """Registers a log entry, and possibly sends all queued log entries to upstream Manager.
@@ -474,7 +474,7 @@ class FlamencoWorker:
         elif self._push_log_to_manager is None or self._push_log_to_manager.done():
             # Schedule a future push to manager.
             self._push_log_to_manager = asyncio.ensure_future(
-                await self.push_to_manager(delay=self.push_log_max_interval))
+                self.push_to_manager(delay=self.push_log_max_interval))
 
     def output_produced(self, *paths: typing.Union[str, pathlib.PurePath]):
         """Registers a produced output (e.g. rendered frame) with the manager.
