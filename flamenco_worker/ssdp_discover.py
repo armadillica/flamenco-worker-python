@@ -1,4 +1,5 @@
 import logging
+import platform
 import socket
 from http.client import HTTPResponse
 
@@ -44,6 +45,7 @@ def find_flamenco_manager(timeout=1, retries=5):
     log.info('Finding Flamenco Manager through UPnP/SSDP discovery.')
 
     families_and_addresses = set(interface_addresses())
+    is_windows = platform.system() == 'Windows'
 
     for _ in range(retries):
         failed_families = 0
@@ -71,9 +73,8 @@ def find_flamenco_manager(timeout=1, retries=5):
             sock.bind(('', 1901))
 
             # Required on Windows, otherwise the message won't go out.
-            if family == socket.AF_INET:
-                host = socket.gethostbyname(socket.gethostname())
-                sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton(host))
+            if is_windows and family == socket.AF_INET:
+                sock.setsockopt(socket.SOL_IP, socket.IP_MULTICAST_IF, socket.inet_aton('0.0.0.0'))
 
             try:
                 for _ in range(2):
