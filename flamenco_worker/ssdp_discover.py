@@ -53,7 +53,6 @@ def unique(addresses):
 def find_flamenco_manager(timeout=1, retries=5):
     log.info('Finding Flamenco Manager through UPnP/SSDP discovery.')
 
-    socket.setdefaulttimeout(timeout)
     families_and_addresses = list(unique(interface_addresses()))
 
     for _ in range(retries):
@@ -69,6 +68,7 @@ def find_flamenco_manager(timeout=1, retries=5):
             log.debug('Sending to %s %s, dest=%s', family, addr, dest)
 
             sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+            sock.settimeout(timeout)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 2)
             sock.bind((addr, 0))
