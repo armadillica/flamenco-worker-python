@@ -60,6 +60,8 @@ def find_flamenco_manager(timeout=1, retries=5):
             sock = socket.socket(family, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
             sock.settimeout(timeout)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            if hasattr(socket, 'SO_REUSEPORT'):  # on macOS
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
             try:
                 sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 32)
             except OSError:
