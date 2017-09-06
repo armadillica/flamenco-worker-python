@@ -48,7 +48,8 @@ def create_zip(prefix: str, dist_dir: Path):
     shutil.rmtree(str(to_zip))
     print('Created', zip_path)
 
-if __name__ == '__main__':
+
+def main():
     print('Building installation directory')
     sys.argv = ['pyinstaller', 'flamenco-worker.spec', '--log-level', 'WARN']
     run()
@@ -61,3 +62,7 @@ if __name__ == '__main__':
         create_zip(prefix, dist_dir)
     else:
         create_tar(prefix, dist_dir)
+
+
+if __name__ == '__main__':
+    main()
