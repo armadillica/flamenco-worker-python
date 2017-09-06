@@ -114,6 +114,8 @@ Flamenco Worker responds to the following POSIX signals:
 
 ## Packaging for distribution
 
+First run `pip install -r requirements-dev.txt` to fetch developer dependencies.
+
 Run `mkdistfile.py` to create a distributable archive (`.zip` on Windows, `.tar.gz` on Linux and
 macOS) containing a runnable Flamenco Worker. This build doesn't require installing Python or any
 dependencies, and can be directly run on a target machine of the same OS.
