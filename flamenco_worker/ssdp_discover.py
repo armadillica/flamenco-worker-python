@@ -81,7 +81,7 @@ def find_flamenco_manager(timeout=1, retries=5):
                     # sending it more than once will
                     # decrease the probability of a timeout
                     sock.sendto(DISCOVERY_MSG, (dest, 1900))
-            except PermissionError:
+            except (PermissionError, OSError):
                 log.info('Failed sending UPnP/SSDP discovery message to %s, dest=%s', family, dest)
                 failed_families += 1
                 continue
