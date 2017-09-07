@@ -3,7 +3,7 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.0.8 (in development)
+## Version 2.0.8 (released 2017-09-07)
 
 - Fixed parsing of `--config` CLI param on Python 3.5
 - Added `--debug` CLI parameter to easily enable debug logging without having
