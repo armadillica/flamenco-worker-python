@@ -17,6 +17,15 @@ There are two ways to install Flamenco Worker:
   requires Python 3.5.2 or newer.
 
 
+## Upgrading
+
+Upgrading from a previous version of Flamenco Worker is simple:
+
+- Unpack the package you downloaded from [flamenco.io](https://flamenco.io/download).
+- Copy the `flamenco-worker.cfg` and `flamenco-worker.db` files from your previous installation.
+- Start Flamenco Worker.
+
+
 ## Configuration
 
 Configuration is read from three locations:
