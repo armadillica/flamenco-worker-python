@@ -3,6 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.0.9 (in development)
+
+- Fixed sending task status updates after the task may no longer be run.
+
+
 ## Version 2.0.8 (released 2017-09-07)
 
 - Fixed parsing of `--config` CLI param on Python 3.5

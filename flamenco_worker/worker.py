@@ -41,6 +41,12 @@ class FlamencoWorker:
     shutdown_future = attr.ib(
         validator=attr.validators.optional(attr.validators.instance_of(asyncio.Future)))
 
+    # When Manager tells us we may no longer run our current task, this is set to True.
+    # As a result, the cancelled state isn't pushed to Manager any more. It is reset
+    # to False when a new task is started.
+    task_is_silently_aborting = attr.ib(default=False, init=False,
+                                        validator=attr.validators.instance_of(bool))
+
     fetch_task_task = attr.ib(
         default=None, init=False,
         validator=attr.validators.optional(attr.validators.instance_of(asyncio.Task)))
@@ -240,12 +246,18 @@ class FlamencoWorker:
             return
 
         self._log.warning('Stopping task %s', self.task_id)
+        self.task_is_silently_aborting = True
 
         try:
             await self.trunner.abort_current_task()
         except asyncio.CancelledError:
             self._log.info('asyncio task was canceled for task runner task %s', self.task_id)
         self.asyncio_execution_task.cancel()
+
+        await self.register_log('Worker %s stopped running this task,'
+                                ' no longer allowed to run by Manager', self.worker_id)
+        await self.push_to_manager()
+        await self.tuqueue.flush_and_report(loop=self.loop)
 
     def shutdown(self):
         """Gracefully shuts down any asynchronous tasks."""
@@ -298,6 +310,8 @@ class FlamencoWorker:
         import traceback
         import requests
 
+        self._cleanup_state_for_new_task()
+
         self._log.debug('Going to fetch task in %s seconds', delay)
         await asyncio.sleep(delay)
 
@@ -349,6 +363,9 @@ class FlamencoWorker:
             if self.failures_are_acceptable:
                 self._log.warning('Task %s was cancelled, but ignoring it since '
                                   'we are shutting down.', self.task_id)
+            elif self.task_is_silently_aborting:
+                self._log.warning('Task %s was cancelled, but ignoring it since '
+                                  'we are no longer allowed to run it.', self.task_id)
             else:
                 self._log.warning('Task %s was cancelled', self.task_id)
                 await self.register_task_update(task_status='canceled',
@@ -373,6 +390,13 @@ class FlamencoWorker:
                 # the world when we're in some infinite failure loop.
                 self.schedule_fetch_task(FETCH_TASK_DONE_SCHEDULE_NEW_DELAY)
 
+    def _cleanup_state_for_new_task(self):
+        """Cleans up internal state to prepare for a new task to be executed."""
+
+        self.last_task_activity = documents.Activity()
+        self.task_is_silently_aborting = False
+        self.current_task_status = ''
+
     async def push_to_manager(self, *, delay: datetime.timedelta = None):
         """Updates a task's status and activity.
 
@@ -390,8 +414,13 @@ class FlamencoWorker:
         self._log.info('Updating task %s with status %r and activity %r',
                        self.task_id, self.current_task_status, self.last_task_activity)
 
-        payload = attr.asdict(self.last_task_activity)
-        payload['task_status'] = self.current_task_status
+        if self.task_is_silently_aborting:
+            self._log.info('push_to_manager: task is silently aborting, will only push logs')
+            payload = {}
+        else:
+            payload = attr.asdict(self.last_task_activity)
+            if self.current_task_status:
+                payload['task_status'] = self.current_task_status
 
         now = datetime.datetime.now()
         self.last_activity_push = now
@@ -409,6 +438,10 @@ class FlamencoWorker:
                 # Cancel any pending push task, as we're pushing logs now.
                 if self._push_log_to_manager is not None:
                     self._push_log_to_manager.cancel()
+
+        if not payload:
+            self._log.debug('push_to_manager: nothing to push')
+            return
 
         self.tuqueue.queue('/tasks/%s/update' % self.task_id, payload, loop=self.loop)
 

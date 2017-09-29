@@ -71,7 +71,6 @@ class WorkerStartupTest(AbstractFWorkerTest):
     @unittest.mock.patch('socket.gethostname')
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
     def test_startup_already_registered(self, mock_merge_with_home_config, mock_gethostname):
-
         from mock_responses import EmptyResponse, CoroMock
 
         mock_gethostname.return_value = 'ws-unittest'
@@ -224,7 +223,6 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
     def test_stop_current_task(self):
         """Test that stopped tasks get status 'canceled'."""
 
-        from unittest.mock import call
         from mock_responses import JsonResponse, CoroMock
 
         self.manager.post = CoroMock()
@@ -248,6 +246,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
         self.worker.schedule_fetch_task()
 
         stop_called = False
+
         async def stop():
             nonlocal stop_called
             stop_called = True
@@ -261,20 +260,22 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
         self.assertTrue(stop_called)
 
         self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
-        self.tuqueue.queue.assert_has_calls([
-            call('/tasks/58514d1e9837734f2e71b479/update',
-                 {'task_progress_percentage': 0, 'activity': '',
-                  'command_progress_percentage': 0, 'task_status': 'active',
-                  'current_command_idx': 0},
-                 loop=self.loop,
-                 ),
-            call('/tasks/58514d1e9837734f2e71b479/update',
-                 {'task_progress_percentage': 0, 'activity': 'Task was canceled',
-                  'command_progress_percentage': 0, 'task_status': 'canceled',
-                  'current_command_idx': 0},
-                 loop=self.loop,
-                 )
-        ])
+        self.tuqueue.queue.assert_any_call(
+            '/tasks/58514d1e9837734f2e71b479/update',
+            {'task_progress_percentage': 0, 'activity': '',
+             'command_progress_percentage': 0, 'task_status': 'active',
+             'current_command_idx': 0},
+            loop=self.loop,
+        )
+
+        # A bit clunky because we don't know which timestamp is included in the log line.
+        last_args, last_kwargs = self.tuqueue.queue.call_args
+        self.assertEqual(last_args[0], '/tasks/58514d1e9837734f2e71b479/update')
+        self.assertEqual(last_kwargs, {'loop': self.loop})
+        self.assertIn('log', last_args[1])
+        self.assertTrue(last_args[1]['log'].endswith(
+            'Worker 1234 stopped running this task, no longer allowed to run by Manager'))
+
         self.assertEqual(self.tuqueue.queue.call_count, 2)
 
 
@@ -386,7 +387,6 @@ class WorkerPushToMasterTest(AbstractFWorkerTest):
 
         # The scheduled task should be cancelled.
         self.assertTrue(self.worker._push_log_to_manager.cancelled())
-
 
 
 class WorkerShutdownTest(AbstractWorkerTest):
