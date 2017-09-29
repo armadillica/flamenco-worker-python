@@ -279,7 +279,7 @@ class FlamencoWorker:
             self.loop.run_until_complete(self.push_to_manager())
 
         # Try to do a final push of queued updates to the Manager.
-        self.loop.run_until_complete(self.tuqueue.flush_for_shutdown(loop=self.loop))
+        self.loop.run_until_complete(self.tuqueue.flush_and_report(loop=self.loop))
 
         # Let the Manager know we're shutting down
         self._log.info('shutdown(): signing off at Manager')

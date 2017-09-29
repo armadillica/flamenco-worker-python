@@ -149,23 +149,23 @@ class TaskUpdateQueue:
 
         return queue_is_empty
 
-    async def flush_for_shutdown(self, *, loop: asyncio.AbstractEventLoop):
+    async def flush_and_report(self, *, loop: asyncio.AbstractEventLoop):
         """Flushes the queue, and just reports errors, doesn't wait nor retry."""
 
         import requests
 
-        self._log.info('flush_for_shutdown: trying one last push to get updates to Manager')
+        self._log.info('flush_and_report: trying one last push to get updates to Manager')
 
         try:
             await self.flush(loop=loop)
         except requests.ConnectionError:
-            self._log.warning('flush_for_shutdown: Unable to connect to Manager, '
+            self._log.warning('flush_and_report: Unable to connect to Manager, '
                               'some items are still queued.')
         except requests.HTTPError as ex:
-            self._log.warning('flush_for_shutdown: Manager did not accept our updates (%s),'
+            self._log.warning('flush_and_report: Manager did not accept our updates (%s),'
                               ' some items are still queued.', ex)
         except Exception:
-            self._log.exception('flush_for_shutdown: Unexpected exception, '
+            self._log.exception('flush_and_report: Unexpected exception, '
                                 'Some items are still queued.')
 
     async def flush_and_catch(self, *, loop: asyncio.AbstractEventLoop):

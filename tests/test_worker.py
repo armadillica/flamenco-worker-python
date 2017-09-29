@@ -26,7 +26,7 @@ class AbstractFWorkerTest(AbstractWorkerTest):
 
         self.trunner = Mock(spec=TaskRunner)
         self.tuqueue = Mock(spec=TaskUpdateQueue)
-        self.tuqueue.flush_for_shutdown = CoroMock()
+        self.tuqueue.flush_and_report = CoroMock()
 
         self.trunner.execute = self.mock_task_execute
         self.trunner.abort_current_task = CoroMock()
@@ -407,7 +407,7 @@ class WorkerShutdownTest(AbstractWorkerTest):
 
         self.trunner = Mock(spec=TaskRunner)
         self.tuqueue = Mock(spec=TaskUpdateQueue)
-        self.tuqueue.flush_for_shutdown = CoroMock()
+        self.tuqueue.flush_and_report = CoroMock()
         self.trunner.abort_current_task = CoroMock()
 
         self.worker = FlamencoWorker(
