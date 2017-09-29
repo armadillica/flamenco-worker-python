@@ -152,7 +152,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         """A 409 Conflict response should discard a queued task update.
         """
 
-        from mock_responses import JsonResponse, EmptyResponse
+        from mock_responses import TextResponse
 
         # Try different value types
         payload = {'key': 'value',
@@ -165,7 +165,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
             nonlocal tries
             tries += 1
             self.shutdown_future.cancel()
-            return JsonResponse({}, status_code=409)
+            return TextResponse("no", status_code=409)
 
         self.manager.post.side_effect = push_callback
 

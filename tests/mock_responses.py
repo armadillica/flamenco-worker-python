@@ -24,6 +24,24 @@ class JsonResponse:
 
 
 @attr.s
+class TextResponse:
+    """Mocked HTTP response returning text.
+
+    Maybe we want to switch to using unittest.mock.Mock for this,
+    or to using the responses package.
+    """
+
+    text = attr.ib(default='', validator=attr.validators.instance_of(str))
+    status_code = attr.ib(default=200, validator=attr.validators.instance_of(int))
+
+    def raise_for_status(self):
+        if 200 <= self.status_code < 300:
+            return
+
+        raise requests.HTTPError(self.status_code)
+
+
+@attr.s
 class EmptyResponse:
     """Mocked HTTP response returning an empty 204.
 

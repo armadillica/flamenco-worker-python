@@ -139,7 +139,7 @@ class TaskUpdateQueue:
                     # The task was assigned to another worker, so we're not allowed to
                     # push updates for it. We have to un-queue this update, as it will
                     # never be accepted.
-                    self._log.warning('Task was assigned to another worker, discarding update.')
+                    self._log.warning('discarding update, Manager says %s', resp.text)
                 else:
                     resp.raise_for_status()
                     self._log.debug('Master accepted pushed update.')
