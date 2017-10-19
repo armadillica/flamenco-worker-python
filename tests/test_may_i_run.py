@@ -22,6 +22,10 @@ class MayIRunTest(AbstractWorkerTest):
                            poll_interval=timedelta(seconds=0.2),
                            loop=self.loop)
 
+    def tearDown(self):
+        if self.loop:
+            self.loop.close()
+
     def _mock_get(self, *json_responses):
         from collections import deque
 
@@ -77,3 +81,13 @@ class MayIRunTest(AbstractWorkerTest):
         # Cleanly shut down the work task.
         work_task.cancel()
         self.loop.run_until_complete(work_task)
+
+    def test_go_asleep(self):
+        self._mock_get(
+            {'may_keep_running': False, 'reason': 'switching status', 'status_requested': 'Сергей'},
+            # After this response, no more calls should be made.
+        )
+
+        result = self.loop.run_until_complete(self.mir.may_i_run('1234'))
+        self.assertFalse(result)
+        self.worker.change_status.assert_called_with('Сергей')

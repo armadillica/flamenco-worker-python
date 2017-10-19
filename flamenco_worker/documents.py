@@ -17,6 +17,18 @@ class Activity:
 class MayKeepRunningResponse:
     """Response from the /may-i-run/{task-id} endpoint"""
 
-    may_keep_running = attr.ib(validator=attr.validators.instance_of(bool))
-    reason = attr.ib(default=None,
-                     validator=attr.validators.optional(attr.validators.instance_of(str)))
+    may_keep_running = attr.ib(
+        validator=attr.validators.instance_of(bool))
+    reason = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)))
+    status_requested = attr.ib(
+        default=None,
+        validator=attr.validators.optional(attr.validators.instance_of(str)))
+
+
+@attr.s
+class StatusChangeRequest:
+    """Response from the /task endpoint when we're requested to change our status"""
+
+    status_requested = attr.ib(validator=attr.validators.instance_of(str))

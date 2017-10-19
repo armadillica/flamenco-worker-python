@@ -20,6 +20,8 @@ PUSH_LOG_MAX_ENTRIES = 10
 PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=5)
 PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=1)
 
+ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY = 60
+
 
 class UnableToRegisterError(Exception):
     """Raised when the worker can't register at the manager.
@@ -51,6 +53,11 @@ class FlamencoWorker:
         default=None, init=False,
         validator=attr.validators.optional(attr.validators.instance_of(asyncio.Task)))
     asyncio_execution_task = attr.ib(
+        default=None, init=False,
+        validator=attr.validators.optional(attr.validators.instance_of(asyncio.Task)))
+
+    # See self.sleeping()
+    sleeping_task = attr.ib(
         default=None, init=False,
         validator=attr.validators.optional(attr.validators.instance_of(asyncio.Task)))
 
@@ -265,17 +272,8 @@ class FlamencoWorker:
         self._log.warning('Shutting down')
         self.failures_are_acceptable = True
 
-        if self.fetch_task_task is not None and not self.fetch_task_task.done():
-            self._log.info('shutdown(): Cancelling task fetching task %s', self.fetch_task_task)
-            self.fetch_task_task.cancel()
-
-            # This prevents a 'Task was destroyed but it is pending!' warning on the console.
-            # Sybren: I've only seen this in unit tests, so maybe this code should be moved
-            # there, instead.
-            try:
-                self.loop.run_until_complete(self.fetch_task_task)
-            except asyncio.CancelledError:
-                pass
+        self.stop_fetching_tasks()
+        self.stop_sleeping()
 
         # Stop the task runner
         self.loop.run_until_complete(self.trunner.abort_current_task())
@@ -300,6 +298,26 @@ class FlamencoWorker:
         except Exception as ex:
             self._log.warning('Error signing off. Continuing with shutdown. %s', ex)
         self.failures_are_acceptable = False
+
+    def stop_fetching_tasks(self):
+        """Stops the delayed task-fetching from running.
+
+        Used in shutdown and when we're going to status 'asleep'.
+        """
+
+        if self.fetch_task_task is None or self.fetch_task_task.done():
+            return
+
+        self._log.info('stopping task fetching task %s', self.fetch_task_task)
+        self.fetch_task_task.cancel()
+
+        # This prevents a 'Task was destroyed but it is pending!' warning on the console.
+        # Sybren: I've only seen this in unit tests, so maybe this code should be moved
+        # there, instead.
+        try:
+            self.loop.run_until_complete(self.fetch_task_task)
+        except asyncio.CancelledError:
+            pass
 
     async def fetch_task(self, delay: float):
         """Fetches a single task to perform from Flamenco Manager, and executes it.
@@ -329,6 +347,13 @@ class FlamencoWorker:
             self._log.debug('No tasks available, will retry in %i seconds.',
                             FETCH_TASK_EMPTY_RETRY_DELAY)
             self.schedule_fetch_task(FETCH_TASK_EMPTY_RETRY_DELAY)
+            return
+
+        if resp.status_code == 423:
+            status_change = documents.StatusChangeRequest(**resp.json())
+            self._log.info('status change to %r requested when fetching new task',
+                           status_change.status_requested)
+            self.change_status(status_change.status_requested)
             return
 
         if resp.status_code != 200:
@@ -531,6 +556,77 @@ class FlamencoWorker:
                 self._log.exception('error POSTing to manager /output-produced')
 
         self.loop.create_task(do_post())
+
+    def change_status(self, new_status: str):
+        """Called whenever the Flamenco Manager has a change in current status for us."""
+
+        self._log.info('Manager requested we go to status %r', new_status)
+        status_change_handlers = {
+            'asleep': self.go_to_state_asleep,
+            'awake': self.go_to_state_awake,
+        }
+
+        try:
+            handler = status_change_handlers[new_status]
+        except KeyError:
+            self._log.error('We have no way to go to status %r, going to sleep instead', new_status)
+            handler = self.go_to_state_asleep
+
+        handler()
+
+        # Confirm that we're now in the new state.
+        try:
+            post = self.manager.post('/ack-status-change/%s' % new_status, loop=self.loop)
+            self.loop.create_task(post)
+        except Exception:
+            self._log.exception('unable to notify Manager')
+
+    def go_to_state_asleep(self):
+        """Starts polling for wakeup calls."""
+
+        self._log.info('Going to sleep')
+        self.sleeping_task = self.loop.create_task(self.sleeping())
+        self._log.debug('Created task %s', self.sleeping_task)
+
+    def go_to_state_awake(self):
+        """Restarts the task-fetching asyncio task."""
+
+        self._log.info('Waking up')
+        self.stop_sleeping()
+        self.schedule_fetch_task(3)
+
+    def stop_sleeping(self):
+        """Stops the asyncio task for sleeping."""
+        if self.sleeping_task is None or self.sleeping_task.done():
+            return
+        self.sleeping_task.cancel()
+
+    async def sleeping(self):
+        """Regularly polls the Manager to see if we're allowed to wake up again."""
+
+        while True:
+            try:
+                await asyncio.sleep(ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY)
+                resp = await self.manager.get('/status-change', loop=self.loop)
+
+                if resp.status_code == 204:
+                    # No change, don't do anything
+                    self._log.debug('status the same, continuing sleeping')
+                elif resp.status_code == 200:
+                    # There is a status change
+                    self._log.debug('/status-change: %s', resp.json())
+                    new_status = resp.json()['status_requested']
+                    self.change_status(new_status)
+                    return
+                else:
+                    self._log.error(
+                        'Error %d trying to fetch /status-change on Manager, will retry later.',
+                        resp.status_code)
+            except asyncio.CancelledError:
+                self._log.info('Sleeping ended')
+                return
+            except:
+                self._log.exception('problems while sleeping')
 
 
 def generate_secret() -> str:

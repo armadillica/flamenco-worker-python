@@ -6,6 +6,8 @@ changed functionality, fixed bugs).
 ## Version 2.0.9 (in development)
 
 - Fixed sending task status updates after the task may no longer be run.
+- Worker can now be told to go to sleep by the Manager. In that case task execution
+  stops (because /may-i-run/{task-id} returns 'no') and new tasks are no longer given.
 
 
 ## Version 2.0.8 (released 2017-09-07)

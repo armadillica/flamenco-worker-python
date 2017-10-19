@@ -429,3 +429,28 @@ class WorkerShutdownTest(AbstractWorkerTest):
 
     def tearDown(self):
         self.asyncio_loop.close()
+
+
+class WorkerSleepingTest(AbstractFWorkerTest):
+    def setUp(self):
+        super().setUp()
+        from flamenco_worker.cli import construct_asyncio_loop
+
+        self.loop = construct_asyncio_loop()
+        self.worker.loop = self.loop
+
+    def test_stop_current_task_go_sleep(self):
+        from mock_responses import JsonResponse, CoroMock
+
+        self.manager.post = CoroMock()
+        # response when fetching a task
+        self.manager.post.coro.return_value = JsonResponse({
+            'status_requested': 'sleep'
+        }, status_code=423)
+
+        self.worker.schedule_fetch_task()
+        self.loop.run_until_complete(self.worker.fetch_task_task)
+
+        self.assertIsNotNone(self.worker.sleeping_task)
+        self.assertFalse(self.worker.sleeping_task.done())
+        self.assertTrue(self.worker.fetch_task_task.done())

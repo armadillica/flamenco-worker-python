@@ -53,5 +53,7 @@ class MayIRun:
         if not may_keep_running.may_keep_running:
             self._log.warning('Not allowed to keep running task %s: %s',
                               task_id, may_keep_running.reason)
+            if may_keep_running.status_requested:
+                self.worker.change_status(may_keep_running.status_requested)
 
         return may_keep_running.may_keep_running
