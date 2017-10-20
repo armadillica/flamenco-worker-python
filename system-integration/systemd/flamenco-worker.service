@@ -15,7 +15,8 @@ WorkingDirectory=/shared/bin/flamenco-worker
 User=guest
 Group=guest
 
-Restart=on-failure
+RestartPreventExitStatus=0 SIGUSR1 SIGUSR2
+Restart=always
 RestartSec=1s
 
 EnvironmentFile=-/etc/default/locale

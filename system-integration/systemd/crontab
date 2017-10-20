@@ -4,5 +4,5 @@ SHELL=/bin/bash
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 
 # m h dom mon dow user  command
-0 20 *  * mon-fri root  /bin/systemctl start flamenco-worker
-0  8 *  * mon-fri root  /bin/systemctl stop flamenco-worker
+0 20 *  * mon-fri root  kill -USR2 $(pidof -s flamenco-worker) || systemctl start flamenco-worker # wake up
+0  8 *  * mon-fri root  kill -USR1 $(pidof -s flamenco-worker)  # sleep
