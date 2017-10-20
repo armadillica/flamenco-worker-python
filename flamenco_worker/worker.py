@@ -21,7 +21,7 @@ PUSH_LOG_MAX_ENTRIES = 10
 PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=5)
 PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=1)
 
-ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY = 60
+ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY = 30
 
 
 class UnableToRegisterError(Exception):
