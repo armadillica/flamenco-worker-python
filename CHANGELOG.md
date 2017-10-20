@@ -12,6 +12,8 @@ changed functionality, fixed bugs).
 - Fixed sending task status updates after the task may no longer be run.
 - Worker goes to sleep when receiving signal USR1 and wakes up after signal USR2.
   This is only supported on POSIX platforms that have those signals.
+- Worker can be told to shut down by the Manager. The environment (for example systemd
+  on Linux) is responsible for restarting Flamenco Worker after such a shutdown.
 
 
 ## Version 2.0.8 (released 2017-09-07)

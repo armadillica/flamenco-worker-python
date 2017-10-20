@@ -15,7 +15,7 @@ WorkingDirectory=/shared/bin/flamenco-worker
 User=guest
 Group=guest
 
-RestartPreventExitStatus=0 SIGUSR1 SIGUSR2
+RestartPreventExitStatus=SIGUSR1 SIGUSR2
 Restart=always
 RestartSec=1s
 

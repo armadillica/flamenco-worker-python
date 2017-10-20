@@ -136,13 +136,7 @@ def main():
     asyncio.ensure_future(tuqueue.work(loop=loop))
     mir_work_task = asyncio.ensure_future(mir.work())
 
-    try:
-        loop.run_until_complete(fworker.startup())
-        fworker.mainloop()
-    except worker.UnableToRegisterError:
-        # The worker will have logged something, we'll just shut down cleanly.
-        pass
-    except KeyboardInterrupt:
+    def do_clean_shutdown():
         shutdown_future.cancel()
         mir_work_task.cancel()
         try:
@@ -158,8 +152,19 @@ def main():
             loop.stop()
 
         loop.run_until_complete(stop_loop())
+
+    try:
+        loop.run_until_complete(fworker.startup())
+        fworker.mainloop()
+    except worker.UnableToRegisterError:
+        # The worker will have logged something, we'll just shut down cleanly.
+        pass
+    except KeyboardInterrupt:
+        do_clean_shutdown()
     except:
         log.exception('Uncaught exception!')
+    else:
+        do_clean_shutdown()
 
     # Report on the asyncio task status
     if args.verbose:

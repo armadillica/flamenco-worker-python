@@ -578,6 +578,7 @@ class FlamencoWorker:
         status_change_handlers = {
             'asleep': self.go_to_state_asleep,
             'awake': self.go_to_state_awake,
+            'shutdown': self.go_to_state_shutdown,
         }
 
         try:
@@ -588,7 +589,7 @@ class FlamencoWorker:
 
         handler()
 
-    def ack_status_change(self, new_status: str):
+    def ack_status_change(self, new_status: str) -> asyncio.Task:
         """Confirm that we're now in a certain state.
 
         This ACK can be given without a request from the server, for example to support
@@ -597,7 +598,7 @@ class FlamencoWorker:
 
         try:
             post = self.manager.post('/ack-status-change/%s' % new_status, loop=self.loop)
-            self.loop.create_task(post)
+            return self.loop.create_task(post)
         except Exception:
             self._log.exception('unable to notify Manager')
 
@@ -619,6 +620,24 @@ class FlamencoWorker:
         self.stop_sleeping()
         self.schedule_fetch_task(3)
         self.ack_status_change('awake')
+
+    def go_to_state_shutdown(self):
+        """Shuts down the Flamenco Worker.
+
+        Whether it comes back up depends on the environment. For example,
+        using systemd on Linux with Restart=always will do this.
+        """
+
+        self._log.info('Shutting down by request of the Flamenco Manager')
+        self.state = WorkerState.SHUTTING_DOWN
+
+        # Ack the status change before doing the actual shutdown.
+        def stop_main_loop(*args):
+            self._log.debug('Stopping main loop (%r)', args)
+            self.loop.stop()
+
+        post_task = self.ack_status_change('shutdown')
+        post_task.add_done_callback(stop_main_loop)
 
     def stop_sleeping(self):
         """Stops the asyncio task for sleeping."""
