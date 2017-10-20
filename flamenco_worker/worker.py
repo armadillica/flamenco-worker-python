@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import enum
 import pathlib
 import typing
 
@@ -30,6 +31,13 @@ class UnableToRegisterError(Exception):
     """
 
 
+class WorkerState(enum.Enum):
+    STARTING = 'starting'
+    AWAKE = 'awake'
+    ASLEEP = 'asleep'
+    SHUTTING_DOWN = 'shutting-down'
+
+
 @attr.s
 class FlamencoWorker:
     manager = attr.ib(validator=attr.validators.instance_of(upstream.FlamencoManager))
@@ -42,6 +50,9 @@ class FlamencoWorker:
     loop = attr.ib(validator=attr.validators.instance_of(asyncio.AbstractEventLoop))
     shutdown_future = attr.ib(
         validator=attr.validators.optional(attr.validators.instance_of(asyncio.Future)))
+
+    state = attr.ib(default=WorkerState.STARTING,
+                    validator=attr.validators.instance_of(WorkerState))
 
     # When Manager tells us we may no longer run our current task, this is set to True.
     # As a result, the cancelled state isn't pushed to Manager any more. It is reset
@@ -270,6 +281,7 @@ class FlamencoWorker:
         """Gracefully shuts down any asynchronous tasks."""
 
         self._log.warning('Shutting down')
+        self.state = WorkerState.SHUTTING_DOWN
         self.failures_are_acceptable = True
 
         self.stop_fetching_tasks()
@@ -315,7 +327,8 @@ class FlamencoWorker:
         # Sybren: I've only seen this in unit tests, so maybe this code should be moved
         # there, instead.
         try:
-            self.loop.run_until_complete(self.fetch_task_task)
+            if not self.loop.is_running():
+                self.loop.run_until_complete(self.fetch_task_task)
         except asyncio.CancelledError:
             pass
 
@@ -328,6 +341,7 @@ class FlamencoWorker:
         import traceback
         import requests
 
+        self.state = WorkerState.AWAKE
         self._cleanup_state_for_new_task()
 
         self._log.debug('Going to fetch task in %s seconds', delay)
@@ -410,9 +424,9 @@ class FlamencoWorker:
             except Exception:
                 self._log.exception('While notifying manager of failure, another error happened.')
         finally:
-            if not self.failures_are_acceptable:
-                # Schedule a new task run unless shutting down; after a little delay to not hammer
-                # the world when we're in some infinite failure loop.
+            if self.state == WorkerState.AWAKE:
+                # Schedule a new task run unless shutting down or sleeping; after a little delay to
+                # not hammer the world when we're in some infinite failure loop.
                 self.schedule_fetch_task(FETCH_TASK_DONE_SCHEDULE_NEW_DELAY)
 
     def _cleanup_state_for_new_task(self):
@@ -574,7 +588,13 @@ class FlamencoWorker:
 
         handler()
 
-        # Confirm that we're now in the new state.
+    def ack_status_change(self, new_status: str):
+        """Confirm that we're now in a certain state.
+
+        This ACK can be given without a request from the server, for example to support
+        state changes originating from UNIX signals.
+        """
+
         try:
             post = self.manager.post('/ack-status-change/%s' % new_status, loop=self.loop)
             self.loop.create_task(post)
@@ -585,21 +605,32 @@ class FlamencoWorker:
         """Starts polling for wakeup calls."""
 
         self._log.info('Going to sleep')
+        self.state = WorkerState.ASLEEP
+        self.stop_fetching_tasks()
         self.sleeping_task = self.loop.create_task(self.sleeping())
         self._log.debug('Created task %s', self.sleeping_task)
+        self.ack_status_change('asleep')
 
     def go_to_state_awake(self):
         """Restarts the task-fetching asyncio task."""
 
         self._log.info('Waking up')
+        self.state = WorkerState.AWAKE
         self.stop_sleeping()
         self.schedule_fetch_task(3)
+        self.ack_status_change('awake')
 
     def stop_sleeping(self):
         """Stops the asyncio task for sleeping."""
         if self.sleeping_task is None or self.sleeping_task.done():
             return
         self.sleeping_task.cancel()
+        try:
+            self.sleeping_task.result()
+        except (asyncio.CancelledError, asyncio.InvalidStateError):
+            pass
+        except Exception:
+            self._log.exception('Unexpected exception in sleeping() task.')
 
     async def sleeping(self):
         """Regularly polls the Manager to see if we're allowed to wake up again."""

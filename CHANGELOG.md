@@ -10,6 +10,8 @@ changed functionality, fixed bugs).
   This is done via a request to change its internal state. This state change must be
   acknowleged by the Worker before new tasks will be given.
 - Fixed sending task status updates after the task may no longer be run.
+- Worker goes to sleep when receiving signal USR1 and wakes up after signal USR2.
+  This is only supported on POSIX platforms that have those signals.
 
 
 ## Version 2.0.8 (released 2017-09-07)

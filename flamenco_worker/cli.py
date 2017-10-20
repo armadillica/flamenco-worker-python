@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 import logging.config
+import os
 import pathlib
 
 import requests
@@ -32,7 +33,7 @@ def main():
     config.configure_logging(confparser, enable_debug=args.debug)
 
     log = logging.getLogger(__name__)
-    log.debug('Starting')
+    log.debug('Starting, pid=%d', os.getpid())
 
     if args.reregister:
         log.warning('Erasing worker_id and worker_secret so we can attempt re-registration.')
@@ -109,14 +110,27 @@ def main():
         log.warning('Shutting down due to signal %i', signum)
         raise KeyboardInterrupt()
 
+    def sleep(signum, stackframe):
+        log.warning('Going asleep due to signal %i', signum)
+        fworker.go_to_state_asleep()
+
+    def wakeup(signum, stackframe):
+        log.warning('Waking up due to signal %i', signum)
+        fworker.go_to_state_awake()
+
     # Shut down cleanly upon TERM signal
     import signal
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
     if hasattr(signal, 'SIGUSR1'):
-        # Windows doesn't have a USR1 signal.
-        signal.signal(signal.SIGUSR1, asyncio_report_tasks)
+        # Windows doesn't have USR1/2 signals.
+        signal.signal(signal.SIGUSR1, sleep)
+        signal.signal(signal.SIGUSR2, wakeup)
+
+    if hasattr(signal, 'SIGPOLL'):
+        # Not sure how cross-platform SIGPOLL is.
+        signal.signal(signal.SIGPOLL, asyncio_report_tasks)
 
     # Start asynchronous tasks.
     asyncio.ensure_future(tuqueue.work(loop=loop))
