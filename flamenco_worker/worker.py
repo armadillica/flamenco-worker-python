@@ -631,13 +631,11 @@ class FlamencoWorker:
         self._log.info('Shutting down by request of the Flamenco Manager')
         self.state = WorkerState.SHUTTING_DOWN
 
-        # Ack the status change before doing the actual shutdown.
-        def stop_main_loop(*args):
-            self._log.debug('Stopping main loop (%r)', args)
-            self.loop.stop()
-
-        post_task = self.ack_status_change('shutdown')
-        post_task.add_done_callback(stop_main_loop)
+        # Don't bother acknowledging this status, as we'll push an "offline" status anyway.
+        # This also makes sure that when we're asleep and told to shut down, the Manager
+        # sees an asleep → offline status change, and can remember that we should go back
+        # to asleep status when we come back online.
+        self.loop.stop()
 
     def stop_sleeping(self):
         """Stops the asyncio task for sleeping."""
