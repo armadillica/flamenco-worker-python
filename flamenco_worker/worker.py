@@ -54,6 +54,9 @@ class FlamencoWorker:
     state = attr.ib(default=WorkerState.STARTING,
                     validator=attr.validators.instance_of(WorkerState))
 
+    # Indicates the state in which the Worker should start
+    initial_state = attr.ib(validator=attr.validators.instance_of(str), default='awake')
+
     # When Manager tells us we may no longer run our current task, this is set to True.
     # As a result, the cancelled state isn't pushed to Manager any more. It is reset
     # to False when a new task is started.
@@ -144,7 +147,13 @@ class FlamencoWorker:
         if not do_register:
             await self.signon(may_retry_loop=may_retry_loop)
 
+        # If we're not supposed to start in 'awake' state, let the Manager know.
+        if self.initial_state != 'awake':
+            self._log.info('Telling Manager we are in state %r', self.initial_state)
+            self.ack_status_change(self.initial_state)
+
         self.schedule_fetch_task()
+
 
     @staticmethod
     def hostname() -> str:

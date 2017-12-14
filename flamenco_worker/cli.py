@@ -107,6 +107,7 @@ def main():
         push_log_max_interval=confparser.interval_secs('push_log_max_interval_seconds'),
         push_log_max_entries=confparser.value('push_log_max_entries', int),
         push_act_max_interval=confparser.interval_secs('push_act_max_interval_seconds'),
+        initial_state='testing' if args.test else 'awake',
     )
 
     mir = may_i_run.MayIRun(
