@@ -14,6 +14,7 @@ changed functionality, fixed bugs).
   This is only supported on POSIX platforms that have those signals.
 - Worker can be told to shut down by the Manager. The environment (for example systemd
   on Linux) is responsible for restarting Flamenco Worker after such a shutdown.
+- Added `--version` CLI option to show the version of Flamenco Worker and quit.
 
 
 ## Version 2.0.8 (released 2017-09-07)

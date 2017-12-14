@@ -17,6 +17,8 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true',
                         help='Show configuration before starting, '
                              'and asyncio task status at shutdown.')
+    parser.add_argument('-V', '--version', action='store_true',
+                        help='Show the version of Flamenco Worker and stops.')
     parser.add_argument('-r', '--reregister', action='store_true',
                         help="Erases authentication information and re-registers this worker "
                              "at the Manager. WARNING: this can cause duplicate worker information "
@@ -26,6 +28,11 @@ def main():
                              "Edit the logging config in flamenco-worker.cfg "
                              "for more powerful options.")
     args = parser.parse_args()
+
+    if args.version:
+        from . import __version__
+        print(__version__)
+        raise SystemExit()
 
     # Load configuration
     from . import config
