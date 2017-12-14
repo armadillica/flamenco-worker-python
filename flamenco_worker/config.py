@@ -28,6 +28,9 @@ DEFAULT_CONFIG = {
     ])
 }
 
+# Will be assigned to the config key 'task_types' when started with --test CLI arg.
+TESTING_TASK_TYPES = 'test-blender-render'
+
 log = logging.getLogger(__name__)
 
 
@@ -74,7 +77,8 @@ def merge_with_home_config(new_conf: dict):
 
 
 def load_config(config_file: pathlib.Path = None,
-                show_effective_config: bool = False) -> ConfigParser:
+                show_effective_config: bool = False,
+                enable_test_mode=False) -> ConfigParser:
     """Loads one or more configuration files."""
 
     # Logging and the default interpolation of configparser both use the
@@ -101,6 +105,9 @@ def load_config(config_file: pathlib.Path = None,
         loaded = confparser.read(filenames, encoding='utf8')
 
     log.info('Succesfully loaded: %s', loaded)
+
+    if enable_test_mode:
+        confparser.setvalue('task_types', TESTING_TASK_TYPES)
 
     if show_effective_config:
         import sys

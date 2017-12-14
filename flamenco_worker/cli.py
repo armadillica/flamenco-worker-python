@@ -27,6 +27,10 @@ def main():
                         help="Enables debug logging for Flamenco Worker's own log entries. "
                              "Edit the logging config in flamenco-worker.cfg "
                              "for more powerful options.")
+    parser.add_argument('-t', '--test', action='store_true',
+                        help="Starts up in testing mode, in which only a handful of "
+                             "test-specific task types are accepted. This overrides the task_types "
+                             "in the configuration file.")
     args = parser.parse_args()
 
     if args.version:
@@ -36,11 +40,15 @@ def main():
 
     # Load configuration
     from . import config
-    confparser = config.load_config(args.config, args.verbose)
+    confparser = config.load_config(args.config, args.verbose, args.test)
     config.configure_logging(confparser, enable_debug=args.debug)
 
     log = logging.getLogger(__name__)
     log.debug('Starting, pid=%d', os.getpid())
+
+    if args.test:
+        log.warning('Test mode enabled, overriding task_types=%r',
+                    confparser.value('task_types'))
 
     if args.reregister:
         log.warning('Erasing worker_id and worker_secret so we can attempt re-registration.')
