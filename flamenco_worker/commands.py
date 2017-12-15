@@ -5,6 +5,7 @@ import asyncio
 import asyncio.subprocess
 import logging
 import re
+import time
 import typing
 from pathlib import Path
 
@@ -526,12 +527,6 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             return 'blender_cmd %r does not exist' % cmd[0]
         settings['blender_cmd'] = cmd
 
-        filepath, err = self._setting(settings, 'filepath', True)
-        if err:
-            return err
-        if not Path(filepath).exists():
-            return 'filepath %r does not exist' % filepath
-
         render_output, err = self._setting(settings, 'render_output', False)
         if err:
             return err
@@ -548,6 +543,18 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         _, err = self._setting(settings, 'render_format', False)
         if err:
             return err
+
+        filepath, err = self._setting(settings, 'filepath', True)
+        if err:
+            return err
+        if not Path(filepath).exists():
+            # Let's just wait a few seconds for the file to appear. Networks can be async.
+            self._log.warning('file %s does not exist, waiting for a bit to see if it appears',
+                              filepath)
+            time.sleep(5)
+        if not Path(filepath).exists():
+            # Ok, now it's fatal.
+            return 'filepath %r does not exist' % filepath
 
         return None
 
