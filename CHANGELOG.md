@@ -16,6 +16,8 @@ changed functionality, fixed bugs).
   on Linux) is responsible for restarting Flamenco Worker after such a shutdown.
 - Added `--version` CLI option to show the version of Flamenco Worker and quit.
 - Added `--single` or `-1` CLI option to shut down the Worker after executing a single task.
+- Added `--test` or `-t` CLI option to start in testing mode. See Flamenco documentation
+  for more details. Requires Flamenco Manager 2.1.0+.
 
 
 ## Version 2.0.8 (released 2017-09-07)
