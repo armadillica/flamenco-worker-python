@@ -56,6 +56,7 @@ class FlamencoWorker:
 
     # Indicates the state in which the Worker should start
     initial_state = attr.ib(validator=attr.validators.instance_of(str), default='awake')
+    run_single_task = attr.ib(validator=attr.validators.instance_of(bool), default=False)
 
     # When Manager tells us we may no longer run our current task, this is set to True.
     # As a result, the cancelled state isn't pushed to Manager any more. It is reset
@@ -433,6 +434,11 @@ class FlamencoWorker:
             except Exception:
                 self._log.exception('While notifying manager of failure, another error happened.')
         finally:
+            if self.run_single_task:
+                self._log.info('Running in single-task mode, exiting.')
+                self.go_to_state_shutdown()
+                return
+
             if self.state == WorkerState.AWAKE:
                 # Schedule a new task run unless shutting down or sleeping; after a little delay to
                 # not hammer the world when we're in some infinite failure loop.
@@ -637,7 +643,7 @@ class FlamencoWorker:
         using systemd on Linux with Restart=always will do this.
         """
 
-        self._log.info('Shutting down by request of the Flamenco Manager')
+        self._log.info('Shutting down by request of the Manager or due to single-task mode')
         self.state = WorkerState.SHUTTING_DOWN
 
         # Don't bother acknowledging this status, as we'll push an "offline" status anyway.

@@ -31,6 +31,8 @@ def main():
                         help="Starts up in testing mode, in which only a handful of "
                              "test-specific task types are accepted. This overrides the task_types "
                              "in the configuration file.")
+    parser.add_argument('-1', '--single', action='store_true',
+                        help="Runs a single tasks, then exits.")
     args = parser.parse_args()
 
     if args.version:
@@ -54,6 +56,9 @@ def main():
         log.warning('Erasing worker_id and worker_secret so we can attempt re-registration.')
         confparser.erase('worker_id')
         confparser.erase('worker_secret')
+
+    if args.single:
+        log.info('Running in single-task mode, will stop after performing one task.')
 
     # Find the Manager using UPnP/SSDP if we have no manager_url.
     if not confparser.value('manager_url'):
@@ -108,6 +113,7 @@ def main():
         push_log_max_entries=confparser.value('push_log_max_entries', int),
         push_act_max_interval=confparser.interval_secs('push_act_max_interval_seconds'),
         initial_state='testing' if args.test else 'awake',
+        run_single_task=args.single,
     )
 
     mir = may_i_run.MayIRun(

@@ -62,6 +62,7 @@ class TaskRunner:
                 return False
 
         self._log.info('Task %s completed succesfully.', task_id)
+        self.current_command = None
         return True
 
     async def abort_current_task(self):
