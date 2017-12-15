@@ -1,3 +1,4 @@
+import concurrent.futures
 import unittest
 import unittest.mock
 from unittest.mock import Mock
@@ -449,7 +450,8 @@ class WorkerSleepingTest(AbstractFWorkerTest):
         }, status_code=423)
 
         self.worker.schedule_fetch_task()
-        self.loop.run_until_complete(self.worker.fetch_task_task)
+        with self.assertRaises(concurrent.futures.CancelledError):
+            self.loop.run_until_complete(self.worker.fetch_task_task)
 
         self.assertIsNotNone(self.worker.sleeping_task)
         self.assertFalse(self.worker.sleeping_task.done())
