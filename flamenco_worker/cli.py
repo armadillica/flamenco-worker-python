@@ -162,7 +162,7 @@ def main():
         shutdown_future.cancel()
         mir_work_task.cancel()
         try:
-            loop.run_until_complete(mir_work_task)
+            loop.run_until_complete(asyncio.wait_for(mir_work_task, 5))
         except requests.exceptions.ConnectionError:
             log.warning("Unable to connect to HTTP server, but that's fine as we're shutting down.")
 
