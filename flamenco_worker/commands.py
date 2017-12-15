@@ -565,6 +565,8 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             '--background',
             settings['filepath'],
         ]
+        if settings.get('python_expr'):
+            cmd.extend(['--python-expr', settings['python_expr']])
         if settings.get('render_output'):
             cmd.extend(['--render-output', settings['render_output']])
         if settings.get('format'):

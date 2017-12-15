@@ -18,6 +18,7 @@ changed functionality, fixed bugs).
 - Added `--single` or `-1` CLI option to shut down the Worker after executing a single task.
 - Added `--test` or `-t` CLI option to start in testing mode. See Flamenco documentation
   for more details. Requires Flamenco Manager 2.1.0+.
+- Added support for passing Python scripts to Blender in task definitions.
 
 
 ## Version 2.0.8 (released 2017-09-07)
