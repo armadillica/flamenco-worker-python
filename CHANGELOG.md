@@ -19,6 +19,9 @@ changed functionality, fixed bugs).
 - Added `--test` or `-t` CLI option to start in testing mode. See Flamenco documentation
   for more details. Requires Flamenco Manager 2.1.0+.
 - Added support for passing Python scripts to Blender in task definitions.
+- When a blend file does not exist when a render command starts, waits 5 seconds and test
+  again. This allows for some slight network lag when the job storage resides on a networked
+  file system.
 
 
 ## Version 2.0.8 (released 2017-09-07)
