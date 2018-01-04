@@ -3,7 +3,7 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.1.0 (in development)
+## Version 2.1.0 (2018-01-04)
 
 - Worker can now be told to go to sleep by the Manager. In that case task execution
   stops (because /may-i-run/{task-id} returns 'no') and new tasks are no longer given.
