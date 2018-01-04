@@ -5,6 +5,7 @@ changed functionality, fixed bugs).
 
 ## Version 2.1.0 (2018-01-04)
 
+- Python 3.5.4 is required as minimum Python version.
 - Worker can now be told to go to sleep by the Manager. In that case task execution
   stops (because /may-i-run/{task-id} returns 'no') and new tasks are no longer given.
   This is done via a request to change its internal state. This state change must be
