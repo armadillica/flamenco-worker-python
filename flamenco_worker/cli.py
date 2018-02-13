@@ -48,6 +48,8 @@ def main():
     log = logging.getLogger(__name__)
     log.debug('Starting, pid=%d', os.getpid())
 
+    log_startup()
+
     if args.test:
         log.warning('Test mode enabled, overriding task_types=%r',
                     confparser.value('task_types'))
@@ -258,6 +260,20 @@ def construct_asyncio_loop() -> asyncio.AbstractEventLoop:
 
     asyncio.set_event_loop(loop)
     return loop
+
+
+def log_startup():
+    """Log the version of Flamenco Worker."""
+
+    from . import __version__
+
+    log = logging.getLogger(__name__)
+    old_level = log.level
+    try:
+        log.setLevel(logging.INFO)
+        log.info('Starting Flamenco Worker %s', __version__)
+    finally:
+        log.setLevel(old_level)
 
 
 if __name__ == '__main__':

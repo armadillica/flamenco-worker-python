@@ -3,6 +3,11 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+## Version 2.1.1 (in development)
+
+- Always log the version of Flamenco Manager.
+
+
 ## Version 2.1.0 (2018-01-04)
 
 - Python 3.5.4 is required as minimum Python version.
