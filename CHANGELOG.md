@@ -3,7 +3,7 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.1.1 (2018-03-02)
+## Version 2.1.1 (in development)
 
 - Always log the version of Flamenco Manager.
 - Include missing merge-exr.blend, required for progressive rendering, in the distribution bundle.
