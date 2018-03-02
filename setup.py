@@ -81,11 +81,12 @@ class ZipCommand(Command):
         with checksum_path.open(mode='w') as shafile:
             print('%s  %s' % (hasher.hexdigest(), zip_name.name), file=shafile)
 
+
 if __name__ == '__main__':
     setuptools.setup(
         cmdclass={'zip': ZipCommand},
         name='flamenco-worker',
-        version='2.1.0',
+        version='2.1.1',
         description='Flamenco Worker implementation',
         author='Sybren A. Stüvel',
         author_email='sybren@blender.studio',
