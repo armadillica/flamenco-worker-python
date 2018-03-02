@@ -6,6 +6,7 @@ changed functionality, fixed bugs).
 ## Version 2.1.1 (in development)
 
 - Always log the version of Flamenco Manager.
+- Include missing merge-exr.blend, required for progressive rendering, in the distribution bundle.
 
 
 ## Version 2.1.0 (2018-01-04)
