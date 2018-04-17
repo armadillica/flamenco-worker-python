@@ -113,6 +113,15 @@ class TaskUpdateQueue:
             payload = pickle.loads(row[2])
             yield rowid, url, payload
 
+    def _queue_size(self) -> int:
+        """Return the number of items queued."""
+        if self._db is None:
+            self._connect_db()
+
+        result = self._db.execute('SELECT count(*) FROM fworker_queue')
+        count = next(result)[0]
+        return count
+
     def _unqueue(self, rowid: int):
         """Removes a queued payload from the database."""
 
@@ -128,24 +137,44 @@ class TaskUpdateQueue:
 
         with (await self._queue_lock):
             queue_is_empty = True
+            queue_size_before = self._queue_size()
+            handled = 0
             for rowid, url, payload in self._queue():
                 queue_is_empty = False
 
-                self._log.info('Pushing task update to Manager')
+                queue_size = self._queue_size()
+                self._log.info('Pushing task update to Manager, queue size is %d', queue_size)
                 resp = await self.manager.post(url, json=payload, loop=loop)
                 if resp.status_code == 409:
                     # The task was assigned to another worker, so we're not allowed to
                     # push updates for it. We have to un-queue this update, as it will
                     # never be accepted.
                     self._log.warning('discarding update, Manager says %s', resp.text)
+                    # TODO(sybren): delete all queued updates to the same URL?
                 else:
                     resp.raise_for_status()
                     self._log.debug('Master accepted pushed update.')
                 self._unqueue(rowid)
 
+                handled += 1
+                if handled > 1000:
+                    self._log.info('Taking a break from queue flushing after %d items', handled)
+                    break
+
             if queue_is_empty:
                 # Only clear the flag once the queue has really been cleared.
                 self._stuff_queued.clear()
+
+            queue_size_after = self._queue_size()
+            if queue_size_after > 0:
+                if queue_size_after >= queue_size_before:
+                    self._log.warning(
+                        'Queue size increased from %d to %d, after having flushed %d items',
+                        queue_size_before, queue_size_after, handled)
+                else:
+                    self._log.info(
+                        'Queue size decreased from %d to %d, after having flushed %d items',
+                        queue_size_before, queue_size_after, handled)
 
             return queue_is_empty
 
