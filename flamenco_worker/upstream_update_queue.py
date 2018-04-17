@@ -75,8 +75,6 @@ class TaskUpdateQueue:
         Keeps running until shutdown_future.done() returns True.
         """
 
-        import requests
-
         # Always start by inspecting the persisted queue, so act as if something
         # was just queued.
         self._stuff_queued.set()
