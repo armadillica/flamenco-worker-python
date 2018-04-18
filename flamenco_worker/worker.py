@@ -23,6 +23,11 @@ PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=1)
 
 ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY = 30
 
+# If there are more than this number of queued task updates, we won't ask
+# the Manager for another task to execute. Task execution is delayed until
+# the queue size is below this threshold.
+QUEUE_SIZE_THRESHOLD = 10
+
 
 class UnableToRegisterError(Exception):
     """Raised when the worker can't register at the manager.
@@ -356,6 +361,17 @@ class FlamencoWorker:
 
         self._log.debug('Going to fetch task in %s seconds', delay)
         await asyncio.sleep(delay)
+
+        # Prevent outgoing queue overflowing by waiting until it's below the
+        # threshold before starting another task.
+        # TODO(sybren): introduce another worker state for this, and handle there.
+        with (await self._queue_lock):
+            queue_size = self.tuqueue.queue_size()
+        if queue_size > QUEUE_SIZE_THRESHOLD:
+            self._log.info('Task Update Queue size too large (%d > %d), waiting until it shrinks.',
+                           queue_size, QUEUE_SIZE_THRESHOLD)
+            self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
+            return
 
         # TODO: use exponential backoff instead of retrying every fixed N seconds.
         self._log.debug('Fetching task')

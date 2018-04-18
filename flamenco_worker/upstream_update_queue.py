@@ -113,7 +113,7 @@ class TaskUpdateQueue:
             payload = pickle.loads(row[2])
             yield rowid, url, payload
 
-    def _queue_size(self) -> int:
+    def queue_size(self) -> int:
         """Return the number of items queued."""
         if self._db is None:
             self._connect_db()
@@ -137,12 +137,12 @@ class TaskUpdateQueue:
 
         with (await self._queue_lock):
             queue_is_empty = True
-            queue_size_before = self._queue_size()
+            queue_size_before = self.queue_size()
             handled = 0
             for rowid, url, payload in self._queue():
                 queue_is_empty = False
 
-                queue_size = self._queue_size()
+                queue_size = self.queue_size()
                 self._log.info('Pushing task update to Manager, queue size is %d', queue_size)
                 resp = await self.manager.post(url, json=payload, loop=loop)
                 if resp.status_code == 409:
@@ -165,7 +165,7 @@ class TaskUpdateQueue:
                 # Only clear the flag once the queue has really been cleared.
                 self._stuff_queued.clear()
 
-            queue_size_after = self._queue_size()
+            queue_size_after = self.queue_size()
             if queue_size_after > 0:
                 if queue_size_after >= queue_size_before:
                     self._log.warning(

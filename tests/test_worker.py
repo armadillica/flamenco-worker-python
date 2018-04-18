@@ -28,6 +28,7 @@ class AbstractFWorkerTest(AbstractWorkerTest):
         self.trunner = Mock(spec=TaskRunner)
         self.tuqueue = Mock(spec=TaskUpdateQueue)
         self.tuqueue.flush_and_report = CoroMock()
+        self.tuqueue.queue_size.return_value = 0
 
         self.trunner.execute = self.mock_task_execute
         self.trunner.abort_current_task = CoroMock()
