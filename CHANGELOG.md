@@ -9,6 +9,7 @@ changed functionality, fixed bugs).
 - Include missing merge-exr.blend, required for progressive rendering, in the distribution bundle.
 - Include `exr-merge` task type in default configuration, which is required for progressive
   rendering.
+- Prevent outgoing queue saturation by not fetching a new task when the queue is too large.
 
 
 ## Version 2.1.0 (2018-01-04)
