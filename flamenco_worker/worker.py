@@ -17,9 +17,9 @@ FETCH_TASK_FAILED_RETRY_DELAY = 10  # when we failed obtaining a task
 FETCH_TASK_EMPTY_RETRY_DELAY = 5  # when there are no tasks to perform
 FETCH_TASK_DONE_SCHEDULE_NEW_DELAY = 3  # after a task is completed
 
-PUSH_LOG_MAX_ENTRIES = 10
-PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=5)
-PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=1)
+PUSH_LOG_MAX_ENTRIES = 1000
+PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=30)
+PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=15)
 
 ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY = 30
 

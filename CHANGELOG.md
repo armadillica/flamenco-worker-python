@@ -10,6 +10,8 @@ changed functionality, fixed bugs).
 - Include `exr-merge` task type in default configuration, which is required for progressive
   rendering.
 - Prevent outgoing queue saturation by not fetching a new task when the queue is too large.
+- Changed some of the configuration defaults to more sensible values (mostly queueing up larger
+  amounts of logs before pushing to Flamenco Manager).
 
 
 ## Version 2.1.0 (2018-01-04)
