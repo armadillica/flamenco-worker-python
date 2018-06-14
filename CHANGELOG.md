@@ -10,6 +10,7 @@ changed functionality, fixed bugs).
 - Include `exr-merge` task type in default configuration, which is required for progressive
   rendering.
 - Prevent outgoing queue saturation by not fetching a new task when the queue is too large.
+- When aborting a subprocess, try to terminate it before killing it.
 - Changed some of the configuration defaults to more sensible values (mostly queueing up larger
   amounts of logs before pushing to Flamenco Manager).
 

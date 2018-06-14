@@ -459,11 +459,32 @@ class AbstractSubprocessCommand(AbstractCommand):
             self._log.debug("No process to kill. That's ok.")
             return
 
-        self._log.info('Aborting subprocess')
+        self._log.info('Terminating subprocess')
+
+        try:
+            self.proc.terminate()
+        except ProcessLookupError:
+            self._log.debug("The process was already stopped, aborting is impossible. That's ok.")
+            return
+        except AttributeError:
+            # This can happen in some race conditions, it's fine.
+            self._log.debug("The process was not yet started, aborting is impossible. That's ok.")
+            return
+
+        timeout = 5
+        try:
+            retval = await asyncio.wait_for(self.proc.wait(), timeout,
+                                            loop=asyncio.get_event_loop())
+        except asyncio.TimeoutError:
+            pass
+        else:
+            self._log.info('The process aborted with status code %s', retval)
+            return
+
+        self._log.warning('The process did not stop in %d seconds, going to kill it', timeout)
         try:
             self.proc.kill()
         except ProcessLookupError:
-            # The process is already stopped, so killing is impossible. That's ok.
             self._log.debug("The process was already stopped, aborting is impossible. That's ok.")
             return
         except AttributeError:
