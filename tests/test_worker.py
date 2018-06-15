@@ -211,13 +211,11 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
                  {'task_progress_percentage': 0, 'activity': '',
                   'command_progress_percentage': 0, 'task_status': 'active',
                   'current_command_idx': 0},
-                 loop=self.loop,
                  ),
             call('/tasks/58514d1e9837734f2e71b479/update',
                  {'task_progress_percentage': 0, 'activity': 'Task completed',
                   'command_progress_percentage': 0, 'task_status': 'completed',
                   'current_command_idx': 0},
-                 loop=self.loop,
                  )
         ])
         self.assertEqual(self.tuqueue.queue.call_count, 2)
@@ -267,13 +265,12 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
             {'task_progress_percentage': 0, 'activity': '',
              'command_progress_percentage': 0, 'task_status': 'active',
              'current_command_idx': 0},
-            loop=self.loop,
         )
 
         # A bit clunky because we don't know which timestamp is included in the log line.
         last_args, last_kwargs = self.tuqueue.queue.call_args
         self.assertEqual(last_args[0], '/tasks/58514d1e9837734f2e71b479/update')
-        self.assertEqual(last_kwargs, {'loop': self.loop})
+        self.assertEqual(last_kwargs, {})
         self.assertIn('log', last_args[1])
         self.assertTrue(last_args[1]['log'].endswith(
             'Worker 1234 stopped running this task, no longer allowed to run by Manager'))

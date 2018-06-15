@@ -513,7 +513,7 @@ class FlamencoWorker:
             self._log.debug('push_to_manager: nothing to push')
             return
 
-        self.tuqueue.queue('/tasks/%s/update' % self.task_id, payload, loop=self.loop)
+        self.tuqueue.queue('/tasks/%s/update' % self.task_id, payload)
 
     async def register_task_update(self, *,
                                    task_status: str = None,
@@ -567,8 +567,8 @@ class FlamencoWorker:
             queue_size = len(self._queued_log_entries)
 
         if queue_size > self.push_log_max_entries:
-            self._log.info('Queued up more than %i log entries, pushing to manager',
-                           self.push_log_max_entries)
+            self._log.info('Queued up %i > %i log entries, pushing to manager',
+                           queue_size, self.push_log_max_entries)
             await self.push_to_manager()
         elif datetime.datetime.now() - self.last_log_push > self.push_log_max_interval:
             self._log.info('More than %s since last log update, pushing to manager',
