@@ -126,6 +126,7 @@ Flamenco Worker responds to the following POSIX signals:
 
 First run `pip install -r requirements-dev.txt` to fetch developer dependencies. On Windows,
 download the [Microsoft Visual C++ 2010 Redistributable Package](https://www.microsoft.com/en-us/download/details.aspx?id=13523).
+On Ubuntu/Debian, make sure you have the 'binutils' package installed.
 
 Run `mkdistfile.py` to create a distributable archive (`.zip` on Windows, `.tar.gz` on Linux and
 macOS) containing a runnable Flamenco Worker. This build doesn't require installing Python or any
