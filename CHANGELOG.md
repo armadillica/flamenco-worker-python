@@ -13,6 +13,8 @@ changed functionality, fixed bugs).
 - When aborting a subprocess, try to terminate it before killing it.
 - Changed some of the configuration defaults to more sensible values (mostly queueing up larger
   amounts of logs before pushing to Flamenco Manager).
+- Fixed a memory leak in the ask update queue.
+- Added a new `log_a_lot` command and task type `debug` to aid in debugging.
 
 
 ## Version 2.1.0 (2018-01-04)
