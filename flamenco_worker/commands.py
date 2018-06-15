@@ -202,6 +202,23 @@ class EchoCommand(AbstractCommand):
         await self.worker.register_log(settings['message'])
 
 
+@command_executor('log_a_lot')
+class LogALotCommand(AbstractCommand):
+    def validate(self, settings: dict):
+        lines = settings.get('lines', 20000)
+        if isinstance(lines, float):
+            lines = int(lines)
+        if not isinstance(lines, int):
+            return '"lines" setting must be an integer, not %s' % type(lines)
+
+    async def execute(self, settings: dict):
+        lines = settings.get('lines', 20000)
+
+        await self.worker.register_task_update(activity='logging %d lines' % lines)
+        for idx in range(lines):
+            await self.worker.register_log(30 * ('This is line %d' % idx))
+
+
 @command_executor('sleep')
 class SleepCommand(AbstractCommand):
     def validate(self, settings: dict):
