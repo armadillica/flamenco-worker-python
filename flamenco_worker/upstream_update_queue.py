@@ -173,6 +173,9 @@ class TaskUpdateQueue:
                         'Queue size decreased from %d to %d, after having flushed %d items',
                         queue_size_before, queue_size_after, handled)
 
+            self._log.debug('Vacuuming database')
+            self._db.execute('VACUUM')
+
             return queue_is_empty
 
     async def flush_and_report(self, *, loop: asyncio.AbstractEventLoop):
