@@ -142,10 +142,11 @@ class TaskUpdateQueue:
                 queue_size = self.queue_size()
                 self._log.info('Pushing task update to Manager, queue size is %d', queue_size)
                 resp = await self.manager.post(url, json=payload, loop=loop)
-                if resp.status_code == 409:
-                    # The task was assigned to another worker, so we're not allowed to
-                    # push updates for it. We have to un-queue this update, as it will
-                    # never be accepted.
+                if resp.status_code in {404, 409}:
+                    # 404: Task doesn't exist (any more).
+                    # 409: The task was assigned to another worker, so we're not allowed to
+                    #      push updates for it. We have to un-queue this update, as it will
+                    #      never be accepted.
                     self._log.warning('discarding update, Manager says %s', resp.text)
                     # TODO(sybren): delete all queued updates to the same URL?
                 else:

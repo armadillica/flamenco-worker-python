@@ -182,3 +182,42 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         # There should only be one attempt at delivering this payload.
         self.assertEqual(1, tries)
         self.assertEqual([], list(self.tuqueue._queue()))
+
+    def test_task_gone(self):
+        """A 404 Not Found response should discard a queued task update.
+
+        This can happen in a race condition, when a task is deleted/archived
+        while there are still updates in the local queue.
+        """
+
+        from mock_responses import TextResponse
+
+        # Try different value types
+        payload = {'key': 'value',
+                   'sub': {'some': 13,
+                           'values': datetime.datetime.now()}}
+
+        tries = 0
+
+        async def push_callback(url, *, json, loop):
+            nonlocal tries
+            tries += 1
+            self.shutdown_future.cancel()
+            return TextResponse("no", status_code=404)
+
+        self.manager.post.side_effect = push_callback
+
+        self.tuqueue.queue('/push/here', payload)
+
+        # Run the loop for 2 seconds. This should be enough for 3 retries of 0.3 seconds + handling
+        # the actual payload.
+        self.asyncio_loop.run_until_complete(
+            asyncio.wait_for(
+                self.tuqueue.work(loop=self.asyncio_loop),
+                timeout=2
+            )
+        )
+
+        # There should only be one attempt at delivering this payload.
+        self.assertEqual(1, tries)
+        self.assertEqual([], list(self.tuqueue._queue()))

@@ -15,6 +15,8 @@ changed functionality, fixed bugs).
   amounts of logs before pushing to Flamenco Manager).
 - Fixed a memory leak in the ask update queue.
 - Added a new `log_a_lot` command and task type `debug` to aid in debugging.
+- Fixed bug where task updates would be sent in an infinite loop when the Manager didn't
+  know the task, blocking all other task updates.
 
 
 ## Version 2.1.0 (2018-01-04)
