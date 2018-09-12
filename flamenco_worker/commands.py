@@ -540,6 +540,13 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
     re_path_not_found = attr.ib(init=False)
     re_file_saved = attr.ib(init=False)
 
+    # These lines are produced by Cycles (and other rendering engines) for each
+    # object, choking the Manager with logs when there are too many objects.
+    # For now we have some custom code to swallow those lines, in lieu of a
+    # logging system that can handle those volumes properly.
+    substring_synchronizing = {'| Synchronizing object |', ' | Syncing '}
+    seen_synchronizing_line = False
+
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
 
@@ -652,12 +659,23 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
 
         return info
 
+    def _is_sync_line(self, line: str) -> bool:
+        return any(substring in line
+                   for substring in self.substring_synchronizing)
+
     async def process_line(self, line: str) -> typing.Optional[str]:
         """Processes the line, returning None to ignore it."""
 
         # See if there are any warnings about missing files. If so, we update the activity for it.
         if 'Warning: Unable to open' in line or self.re_path_not_found.search(line):
             await self.worker.register_task_update(activity=line)
+
+        if self._is_sync_line(line):
+            if self.seen_synchronizing_line:
+                return None
+            self.seen_synchronizing_line = True
+            return '> %s  (NOTE FROM WORKER: only logging this line; skipping the rest of ' \
+                   'the Synchronizing Objects lines)' % line
 
         render_info = self.parse_render_line(line)
         if render_info:
