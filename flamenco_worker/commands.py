@@ -379,6 +379,7 @@ class CopyFileCommand(AbstractCommand):
         shutil.copy(str(src), str(dest))
         self.worker.output_produced(dest)
 
+
 @command_executor('remove_tree')
 class RemoveTreeCommand(AbstractCommand):
     def validate(self, settings: dict):
