@@ -517,7 +517,7 @@ class AbstractSubprocessCommand(AbstractCommand):
     async def process_line(self, line: str) -> typing.Optional[str]:
         """Processes the line, returning None to ignore it."""
 
-        return '> %s' % line
+        return 'PID=%d > %s' % (self.proc.pid, line)
 
     async def abort(self):
         """Aborts the command by killing the subprocess."""

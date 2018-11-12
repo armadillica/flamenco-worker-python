@@ -24,6 +24,7 @@ changed functionality, fixed bugs).
   status `error` and sleep for 10 minutes before trying again.
 - Subprocess commands now write the spawned process PID in a text file, and refuse to run if there
   already is such a file with an alive PID.
+- Log lines produced by subprocesses are now prefixed with 'PID=nnn'.
 
 
 ## Version 2.1.0 (2018-01-04)

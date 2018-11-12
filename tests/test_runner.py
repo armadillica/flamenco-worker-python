@@ -86,14 +86,15 @@ class ExecCommandTest(AbstractCommandTest):
             0.6
         ))
         self.assertTrue(ok)
+        pid = cmd.proc.pid
 
         # Check that both lines have been reported.
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
                  '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % sys.executable),
-            call('> hello, this is two lines'),  # note the logged line doesn't end in a newline
-            call('> Yes, really.'),  # note the logged line doesn't end in a newline
+            call('PID=%d > hello, this is two lines' % pid),
+            call('PID=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
             call('exec: Finished'),
         ])
 
@@ -151,13 +152,14 @@ class ExecCommandTest(AbstractCommandTest):
             0.6
         ))
         self.assertFalse(ok)
+        pid = cmd.proc.pid
 
         # Check that the execution error has been reported.
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
                  '%s -c \'raise SystemExit("¡FAIL!")\'' % sys.executable),
-            call('> ¡FAIL!'),  # note the logged line doesn't end in a newline
+            call('PID=%d > ¡FAIL!' % pid),  # note the logged line doesn't end in a newline
             call('exec.(task_id=12345, command_idx=0): Error executing: '
                  'Command failed with status 1')
         ])
