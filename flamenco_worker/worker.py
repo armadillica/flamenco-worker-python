@@ -47,10 +47,10 @@ class WorkerState(enum.Enum):
     SHUTTING_DOWN = 'shutting-down'
 
 
-@attr.s(auto_attribs=True)
+@attr.s()
 class PreTaskCheckParams:
-    pre_task_check_write: typing.Tuple[pathlib.Path] = ()
-    pre_task_check_read: typing.Tuple[pathlib.Path] = ()
+    pre_task_check_write = attr.ib(validator=attr.validators.instance_of(tuple), factory=tuple)
+    pre_task_check_read = attr.ib(validator=attr.validators.instance_of(tuple), factory=tuple)
 
 
 class PreTaskCheckFailed(PermissionError):
@@ -784,13 +784,15 @@ class FlamencoWorker:
                 raise PreTaskCheckFailed('%s does not exist' % read_path) from None
             if read_path.is_dir():
                 try:
-                    # Globbing an unreadable/nonexistant directory just
-                    # returns an empty iterator. Globbing something nonexistant
-                    # inside a non-readable directory raises a PermissionError.
-                    glob = (read_path / 'anything').glob('*')
-                    list(itertools.islice(glob, 1))
+                    (read_path / 'anything').stat()
                 except PermissionError:
                     raise PreTaskCheckFailed('%s is not readable' % read_path) from None
+                except FileNotFoundError:
+                    # This is expected.
+                    pass
+                except:
+                    self._log.exception('Unexpected shit happened')
+                    raise SystemExit(44)
             else:
                 try:
                     with read_path.open(mode='r') as the_file:
@@ -811,7 +813,7 @@ class FlamencoWorker:
             post_delete = False
             try:
                 if write_path.is_dir():
-                    testfile = tempfile.TemporaryFile('w', dir=write_path)
+                    testfile = tempfile.TemporaryFile('w', dir=str(write_path))
                 else:
                     post_delete = not write_path.exists()
                     testfile = write_path.open('a+')

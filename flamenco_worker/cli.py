@@ -210,8 +210,8 @@ def parse_pretask_check_config(confparser, log):
     """
     from . import worker
 
-    check_read: typing.List[pathlib.Path] = []
-    check_write: typing.List[pathlib.Path] = []
+    check_read = []
+    check_write = []
     for name, value in confparser.items(section='pre_task_check'):
         if name.startswith('write'):
             check_write.append(pathlib.Path(value))
