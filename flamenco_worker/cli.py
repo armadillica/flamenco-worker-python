@@ -215,7 +215,7 @@ def parse_pretask_check_config(confparser, log):
     for name, value in confparser.items(section='pre_task_check'):
         if name.startswith('write'):
             check_write.append(pathlib.Path(value))
-        elif name.statswith('read'):
+        elif name.startswith('read'):
             check_read.append(pathlib.Path(value))
         else:
             log.fatal('Config section "pre_task_check" should only have keys starting with '
