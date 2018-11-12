@@ -6,6 +6,7 @@ import logging
 import logging.config
 import os
 import pathlib
+import typing
 
 import requests
 
@@ -102,6 +103,8 @@ def main():
     trunner = runner.TaskRunner(
         shutdown_future=shutdown_future)
 
+    pretask_check_params = parse_pretask_check_config(confparser, log)
+
     fworker = worker.FlamencoWorker(
         manager=fmanager,
         trunner=trunner,
@@ -116,6 +119,7 @@ def main():
         push_act_max_interval=confparser.interval_secs('push_act_max_interval_seconds'),
         initial_state='testing' if args.test else 'awake',
         run_single_task=args.single,
+        pretask_check_params=pretask_check_params,
     )
 
     mir = may_i_run.MayIRun(
@@ -197,6 +201,31 @@ def main():
     log.warning('Closing asyncio loop')
     loop.close()
     log.warning('Flamenco Worker is shut down')
+
+
+def parse_pretask_check_config(confparser, log):
+    """Parse the [pre_task_check] config section.
+
+    :rtype: flamenco.worker.PreTaskCheckParams
+    """
+    from . import worker
+
+    check_read: typing.List[pathlib.Path] = []
+    check_write: typing.List[pathlib.Path] = []
+    for name, value in confparser.items(section='pre_task_check'):
+        if name.startswith('write'):
+            check_write.append(pathlib.Path(value))
+        elif name.statswith('read'):
+            check_read.append(pathlib.Path(value))
+        else:
+            log.fatal('Config section "pre_task_check" should only have keys starting with '
+                      '"read" or "write"; found %r', value)
+            raise SystemExit(47)
+    pretask_check_params = worker.PreTaskCheckParams(
+        pre_task_check_write=tuple(check_write),
+        pre_task_check_read=tuple(check_read),
+    )
+    return pretask_check_params
 
 
 def asyncio_report_tasks(signum=0, stackframe=None):

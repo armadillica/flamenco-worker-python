@@ -25,7 +25,8 @@ DEFAULT_CONFIG = {
         ('push_log_max_interval_seconds', str(worker.PUSH_LOG_MAX_INTERVAL.total_seconds())),
         ('push_log_max_entries', str(worker.PUSH_LOG_MAX_ENTRIES)),
         ('push_act_max_interval_seconds', str(worker.PUSH_ACT_MAX_INTERVAL.total_seconds())),
-    ])
+    ]),
+    'pre_task_check': collections.OrderedDict([]),
 }
 
 # Will be assigned to the config key 'task_types' when started with --test CLI arg.
@@ -92,12 +93,12 @@ def load_config(config_file: pathlib.Path = None,
         log.info('Loading configuration from %s', config_file)
         if not config_file.exists():
             log.fatal('Config file %s does not exist', config_file)
-            raise SystemExit()
+            raise SystemExit(47)
         loaded = confparser.read(str(config_file), encoding='utf8')
     else:
         if not GLOBAL_CONFIG_FILE.exists():
             log.fatal('Config file %s does not exist', GLOBAL_CONFIG_FILE)
-            raise SystemExit()
+            raise SystemExit(47)
 
         config_files = [GLOBAL_CONFIG_FILE, HOME_CONFIG_FILE]
         filenames = [str(f.absolute()) for f in config_files]

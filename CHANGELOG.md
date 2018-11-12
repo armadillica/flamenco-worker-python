@@ -17,6 +17,11 @@ changed functionality, fixed bugs).
 - Added a new `log_a_lot` command and task type `debug` to aid in debugging.
 - Fixed bug where task updates would be sent in an infinite loop when the Manager didn't
   know the task, blocking all other task updates.
+- Added a `pre_task_check` section to the configuration file, which can contain `write.N` and
+  `read.N` keys (where `N` can be anything to make the keys unique). Every value is a path to be
+  checked for writability or readability. Note that write checks are lossy, and bytes are appended
+  to any existing file used to check writability. When such a check fails, the Worker will go to
+  status `error` and sleep for 10 minutes before trying again.
 
 
 ## Version 2.1.0 (2018-01-04)

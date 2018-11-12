@@ -1,7 +1,9 @@
 import asyncio
 import datetime
 import enum
+import itertools
 import pathlib
+import tempfile
 import typing
 
 import attr
@@ -16,6 +18,7 @@ REGISTER_AT_MANAGER_FAILED_RETRY_DELAY = 30
 FETCH_TASK_FAILED_RETRY_DELAY = 10  # when we failed obtaining a task
 FETCH_TASK_EMPTY_RETRY_DELAY = 5  # when there are no tasks to perform
 FETCH_TASK_DONE_SCHEDULE_NEW_DELAY = 3  # after a task is completed
+ERROR_RETRY_DELAY = 600  # after the pre-task sanity check failed
 
 PUSH_LOG_MAX_ENTRIES = 1000
 PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=30)
@@ -40,7 +43,18 @@ class WorkerState(enum.Enum):
     STARTING = 'starting'
     AWAKE = 'awake'
     ASLEEP = 'asleep'
+    ERROR = 'error'
     SHUTTING_DOWN = 'shutting-down'
+
+
+@attr.s(auto_attribs=True)
+class PreTaskCheckParams:
+    pre_task_check_write: typing.Tuple[pathlib.Path] = ()
+    pre_task_check_read: typing.Tuple[pathlib.Path] = ()
+
+
+class PreTaskCheckFailed(PermissionError):
+    """Raised when the pre-task sanity check fails."""
 
 
 @attr.s
@@ -110,6 +124,9 @@ class FlamencoWorker:
     push_act_max_interval = attr.ib(default=PUSH_ACT_MAX_INTERVAL,
                                     validator=attr.validators.instance_of(datetime.timedelta))
 
+    pretask_check_params = attr.ib(factory=PreTaskCheckParams,
+                                   validator=attr.validators.instance_of(PreTaskCheckParams))
+
     # Futures that represent delayed calls to push_to_manager().
     # They are scheduled when logs & activities are registered but not yet pushed. They are
     # cancelled when a push_to_manager() actually happens for another reason. There are different
@@ -159,7 +176,6 @@ class FlamencoWorker:
             self.ack_status_change(self.initial_state)
 
         self.schedule_fetch_task()
-
 
     @staticmethod
     def hostname() -> str:
@@ -265,7 +281,8 @@ class FlamencoWorker:
             self._log.warning('Shutting down, not scheduling another fetch-task task.')
             return
 
-        self.single_iteration_task = asyncio.ensure_future(self.single_iteration(delay), loop=self.loop)
+        self.single_iteration_task = asyncio.ensure_future(self.single_iteration(delay),
+                                                           loop=self.loop)
 
     async def stop_current_task(self):
         """Stops the current task by canceling the AsyncIO task.
@@ -371,6 +388,13 @@ class FlamencoWorker:
             self._log.info('Task Update Queue size too large (%d > %d), waiting until it shrinks.',
                            queue_size, QUEUE_SIZE_THRESHOLD)
             self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
+            return
+
+        try:
+            self.pre_task_sanity_check()
+        except PreTaskCheckFailed as ex:
+            self._log.exception('Pre-task sanity check failed: %s, waiting until it succeeds', ex)
+            self.go_to_state_error()
             return
 
         task_info = await self.fetch_task()
@@ -559,7 +583,7 @@ class FlamencoWorker:
             self._push_act_to_manager = asyncio.ensure_future(
                 self.push_to_manager(delay=self.push_act_max_interval))
 
-    async def register_log(self, log_entry, *fmt_args):
+    async def register_log(self, log_entry: str, *fmt_args):
         """Registers a log entry, and possibly sends all queued log entries to upstream Manager.
 
         Supports variable arguments, just like the logger.{info,warn,error}(...) family
@@ -620,6 +644,7 @@ class FlamencoWorker:
             'asleep': self.go_to_state_asleep,
             'awake': self.go_to_state_awake,
             'shutdown': self.go_to_state_shutdown,
+            'error': self.go_to_state_error,
         }
 
         try:
@@ -678,6 +703,13 @@ class FlamencoWorker:
         # to asleep status when we come back online.
         self.loop.stop()
 
+    def go_to_state_error(self):
+        """Go to the error state and try going to active after a delay."""
+        self.state = WorkerState.ERROR
+        self._log.warning('Going to state %r', self.state.value)
+        self.ack_status_change(self.state.value)
+        self.sleeping_task = self.loop.create_task(self.sleeping_for_error())
+
     def stop_sleeping(self):
         """Stops the asyncio task for sleeping."""
         if self.sleeping_task is None or self.sleeping_task.done():
@@ -716,6 +748,82 @@ class FlamencoWorker:
                 return
             except:
                 self._log.exception('problems while sleeping')
+
+    async def sleeping_for_error(self):
+        """After a delay go to active mode to see if any errors are now resolved."""
+
+        try:
+            await asyncio.sleep(ERROR_RETRY_DELAY)
+        except asyncio.CancelledError:
+            self._log.info('Error-sleeping ended')
+            return
+        except:
+            self._log.exception('problems while error-sleeping')
+            return
+
+        self._log.warning('Error sleep is done, going to try to become active again')
+        self.go_to_state_awake()
+
+    def pre_task_sanity_check(self):
+        """Perform readability and writability checks before fetching tasks."""
+
+        self._pre_task_check_read()
+        self._pre_task_check_write()
+        self._log.debug('Pre-task sanity check OK')
+
+    def _pre_task_check_read(self):
+        pre_task_check_read = self.pretask_check_params.pre_task_check_read
+        if not pre_task_check_read:
+            return
+
+        self._log.debug('Performing pre-task read check')
+        for read_name in pre_task_check_read:
+            read_path = pathlib.Path(read_name).absolute()
+            self._log.debug('   - Read check on %s', read_path)
+            if not read_path.exists():
+                raise PreTaskCheckFailed('%s does not exist' % read_path) from None
+            if read_path.is_dir():
+                try:
+                    # Globbing an unreadable/nonexistant directory just
+                    # returns an empty iterator. Globbing something nonexistant
+                    # inside a non-readable directory raises a PermissionError.
+                    glob = (read_path / 'anything').glob('*')
+                    list(itertools.islice(glob, 1))
+                except PermissionError:
+                    raise PreTaskCheckFailed('%s is not readable' % read_path) from None
+            else:
+                try:
+                    with read_path.open(mode='r') as the_file:
+                        the_file.read(1)
+                except IOError:
+                    raise PreTaskCheckFailed('%s is not readable' % read_path) from None
+
+    def _pre_task_check_write(self):
+        pre_task_check_write = self.pretask_check_params.pre_task_check_write
+        if not pre_task_check_write:
+            return
+
+        self._log.debug('Performing pre-task write check')
+        for write_name in pre_task_check_write:
+            write_path = pathlib.Path(write_name).absolute()
+            self._log.debug('   - Write check on %s', write_path)
+
+            post_delete = False
+            try:
+                if write_path.is_dir():
+                    testfile = tempfile.TemporaryFile('w', dir=write_path)
+                else:
+                    post_delete = not write_path.exists()
+                    testfile = write_path.open('a+')
+                with testfile as outfile:
+                    outfile.write('♥')
+            except PermissionError:
+                raise PreTaskCheckFailed('%s is not writable' % write_path) from None
+            if post_delete:
+                try:
+                    write_path.unlink()
+                except PermissionError:
+                    self._log.warning('Unable to delete write-test-file %s', write_path)
 
 
 def generate_secret() -> str:
