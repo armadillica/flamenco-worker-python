@@ -22,6 +22,8 @@ changed functionality, fixed bugs).
   checked for writability or readability. Note that write checks are lossy, and bytes are appended
   to any existing file used to check writability. When such a check fails, the Worker will go to
   status `error` and sleep for 10 minutes before trying again.
+- Subprocess commands now write the spawned process PID in a text file, and refuse to run if there
+  already is such a file with an alive PID.
 
 
 ## Version 2.1.0 (2018-01-04)

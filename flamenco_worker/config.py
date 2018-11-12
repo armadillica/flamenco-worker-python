@@ -17,6 +17,7 @@ DEFAULT_CONFIG = {
         ('manager_url', ''),
         ('task_types', 'unknown sleep blender-render'),
         ('task_update_queue_db', 'flamenco-worker.db'),
+        ('subprocess_pid_file', 'flamenco-worker-subprocess.pid'),
         ('may_i_run_interval_seconds', '5'),
         ('worker_id', ''),
         ('worker_secret', ''),

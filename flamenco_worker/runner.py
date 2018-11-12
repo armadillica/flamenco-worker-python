@@ -13,6 +13,7 @@ class TaskRunner:
     """Runs tasks, sending updates back to the worker."""
 
     shutdown_future = attr.ib(validator=attr.validators.instance_of(asyncio.Future))
+    subprocess_pid_file = attr.ib(validator=attr.validators.instance_of(str))
     last_command_idx = attr.ib(default=0, init=False)
 
     _log = attrs_extra.log('%s.TaskRunner' % __name__)

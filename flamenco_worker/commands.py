@@ -4,6 +4,7 @@ import abc
 import asyncio
 import asyncio.subprocess
 import logging
+import pathlib
 import re
 import time
 import typing
@@ -414,6 +415,45 @@ class AbstractSubprocessCommand(AbstractCommand):
     proc = attr.ib(validator=attr.validators.instance_of(asyncio.subprocess.Process),
                    init=False)
 
+    @property
+    def subprocess_pid_file(self) -> typing.Optional[pathlib.Path]:
+        subprocess_pid_file = self.worker.trunner.subprocess_pid_file
+        if not subprocess_pid_file:
+            return None
+        return pathlib.Path(subprocess_pid_file)
+
+    def validate(self, settings: dict) -> typing.Optional[str]:
+        supererr = super().validate(settings)
+        if supererr:
+            return supererr
+
+        pidfile = self.subprocess_pid_file
+        if pidfile is None:
+            self._log.warning('No subprocess PID file configured; this is not recommended.')
+            return None
+
+        try:
+            pid_str = pidfile.read_text()
+        except FileNotFoundError:
+            # This is expected, as it means no subprocess is running.
+            return None
+        if not pid_str:
+            pidfile.unlink()
+            return None
+
+        pid = int(pid_str)
+        self._log.warning('Found PID file %s with PID %r', pidfile, pid)
+
+        import psutil
+
+        try:
+            proc = psutil.Process(pid)
+        except psutil.NoSuchProcess:
+            self._log.warning('Deleting pidfile %s for stale PID %r', pidfile, pid)
+            pidfile.unlink()
+            return None
+        return 'Subprocess from %s is still running: %s' % (pidfile, proc)
+
     async def subprocess(self, args: list):
         import subprocess
         import shlex
@@ -428,6 +468,12 @@ class AbstractSubprocessCommand(AbstractCommand):
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
+
+        pid_path = self.subprocess_pid_file
+        if pid_path:
+            # Require exclusive creation to prevent race conditions.
+            with pid_path.open('x') as pidfile:
+                pidfile.write(str(self.proc.pid))
 
         try:
             while not self.proc.stdout.at_eof():
@@ -464,6 +510,9 @@ class AbstractSubprocessCommand(AbstractCommand):
             self._log.info('asyncio task got canceled, killing subprocess.')
             await self.abort()
             raise
+        finally:
+            if pid_path:
+                pid_path.unlink()
 
     async def process_line(self, line: str) -> typing.Optional[str]:
         """Processes the line, returning None to ignore it."""
@@ -526,6 +575,7 @@ class ExecCommand(AbstractSubprocessCommand):
             return '"cmd" must be a string'
         if not cmd:
             return '"cmd" may not be empty'
+        return super().validate(settings)
 
     async def execute(self, settings: dict):
         import shlex
@@ -602,7 +652,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             # Ok, now it's fatal.
             return 'filepath %r does not exist' % filepath
 
-        return None
+        return super().validate(settings)
 
     async def execute(self, settings: dict):
         cmd = self._build_blender_cmd(settings)
@@ -763,6 +813,8 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
         _, err = self._setting(settings, 'weight2', True, int)
         if err: return err
+
+        return super().validate(settings)
 
     async def execute(self, settings: dict):
         import tempfile

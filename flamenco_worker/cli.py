@@ -101,7 +101,9 @@ def main():
         shutdown_future=shutdown_future,
     )
     trunner = runner.TaskRunner(
-        shutdown_future=shutdown_future)
+        shutdown_future=shutdown_future,
+        subprocess_pid_file=confparser.value('subprocess_pid_file'),
+    )
 
     pretask_check_params = parse_pretask_check_config(confparser, log)
 

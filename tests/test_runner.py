@@ -8,10 +8,13 @@ class AbstractCommandTest(AbstractWorkerTest):
     def setUp(self):
         from mock_responses import CoroMock
         from flamenco_worker.worker import FlamencoWorker
+        from flamenco_worker.runner import TaskRunner
         from flamenco_worker.cli import construct_asyncio_loop
 
         self.loop = construct_asyncio_loop()
         self.fworker = Mock(spec=FlamencoWorker)
+        self.fworker.trunner = Mock(spec=TaskRunner)
+        self.fworker.trunner.subprocess_pid_file = None
         self.fworker.register_log = CoroMock()
         self.fworker.register_task_update = CoroMock()
 
