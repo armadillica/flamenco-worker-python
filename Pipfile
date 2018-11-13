@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+attrs = "*"
+requests = "*"
+psutil = "*"
+
+[dev-packages]
+pytest = "*"
+pytest-cov = "*"
+wheel = "*"
+pyinstaller = "*"
+ipython = "*"
+pathlib2 = {version = "*", markers="python_version < '3.6'"}
+
+[requires]
+python_version = "3.5"

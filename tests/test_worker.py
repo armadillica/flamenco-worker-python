@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import asyncio
 import requests
 
-from abstract_worker_test import AbstractWorkerTest
+from .abstract_worker_test import AbstractWorkerTest
 
 
 class AbstractFWorkerTest(AbstractWorkerTest):
@@ -16,7 +16,7 @@ class AbstractFWorkerTest(AbstractWorkerTest):
         from flamenco_worker.worker import FlamencoWorker
         from flamenco_worker.runner import TaskRunner
         from flamenco_worker.upstream_update_queue import TaskUpdateQueue
-        from mock_responses import CoroMock
+        from .mock_responses import CoroMock
 
         self.asyncio_loop = construct_asyncio_loop()
         self.asyncio_loop.set_debug(True)
@@ -73,7 +73,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
     @unittest.mock.patch('socket.gethostname')
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
     def test_startup_already_registered(self, mock_merge_with_home_config, mock_gethostname):
-        from mock_responses import EmptyResponse, CoroMock
+        from .mock_responses import EmptyResponse, CoroMock
 
         mock_gethostname.return_value = 'ws-unittest'
         self.manager.post = CoroMock(return_value=EmptyResponse())
@@ -94,7 +94,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
     def test_startup_registration(self, mock_merge_with_home_config, mock_gethostname):
         from flamenco_worker.worker import detect_platform
-        from mock_responses import JsonResponse, CoroMock
+        from .mock_responses import JsonResponse, CoroMock
 
         self.worker.worker_id = None
         mock_gethostname.return_value = 'ws-unittest'
@@ -128,7 +128,7 @@ class WorkerStartupTest(AbstractFWorkerTest):
         """Test that startup is aborted when the worker can't register."""
 
         from flamenco_worker.worker import detect_platform, UnableToRegisterError
-        from mock_responses import JsonResponse, CoroMock
+        from .mock_responses import JsonResponse, CoroMock
 
         self.worker.worker_id = None
         mock_gethostname.return_value = 'ws-unittest'
@@ -167,7 +167,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
 
     def test_fetch_task_happy(self):
         from unittest.mock import call
-        from mock_responses import JsonResponse, CoroMock
+        from .mock_responses import JsonResponse, CoroMock
 
         self.manager.post = CoroMock()
         # response when fetching a task
@@ -223,7 +223,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
     def test_stop_current_task(self):
         """Test that stopped tasks get status 'canceled'."""
 
-        from mock_responses import JsonResponse, CoroMock
+        from .mock_responses import JsonResponse, CoroMock
 
         self.manager.post = CoroMock()
         # response when fetching a task
@@ -395,7 +395,7 @@ class WorkerShutdownTest(AbstractWorkerTest):
         from flamenco_worker.worker import FlamencoWorker
         from flamenco_worker.runner import TaskRunner
         from flamenco_worker.upstream_update_queue import TaskUpdateQueue
-        from mock_responses import CoroMock
+        from .mock_responses import CoroMock
 
         self.asyncio_loop = construct_asyncio_loop()
         self.asyncio_loop.set_debug(True)
@@ -439,7 +439,7 @@ class WorkerSleepingTest(AbstractFWorkerTest):
         self.worker.loop = self.loop
 
     def test_stop_current_task_go_sleep(self):
-        from mock_responses import JsonResponse, CoroMock
+        from .mock_responses import JsonResponse, CoroMock
 
         self.manager.post = CoroMock()
         # response when fetching a task

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import requests
 
-from abstract_worker_test import AbstractWorkerTest
+from .abstract_worker_test import AbstractWorkerTest
 
 
 class TaskUpdateQueueTest(AbstractWorkerTest):
@@ -14,7 +14,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         from flamenco_worker.upstream import FlamencoManager
         from flamenco_worker.upstream_update_queue import TaskUpdateQueue
         from flamenco_worker.cli import construct_asyncio_loop
-        from mock_responses import CoroMock
+        from .mock_responses import CoroMock
 
         self.asyncio_loop = construct_asyncio_loop()
         self.shutdown_future = self.asyncio_loop.create_future()
@@ -39,7 +39,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         Also tests connection errors and other HTTP error statuses.
         """
 
-        from mock_responses import JsonResponse, EmptyResponse
+        from .mock_responses import JsonResponse, EmptyResponse
 
         # Try different value types
         payload = {'key': 'value',
@@ -95,7 +95,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
     def test_queue_persistence(self):
         """Check that updates are pushed, even when the process is stopped & restarted."""
 
-        from mock_responses import EmptyResponse
+        from .mock_responses import EmptyResponse
         from flamenco_worker.upstream_update_queue import TaskUpdateQueue
 
         # Try different value types
@@ -151,7 +151,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         """A 409 Conflict response should discard a queued task update.
         """
 
-        from mock_responses import TextResponse
+        from .mock_responses import TextResponse
 
         # Try different value types
         payload = {'key': 'value',
@@ -190,7 +190,7 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         while there are still updates in the local queue.
         """
 
-        from mock_responses import TextResponse
+        from .mock_responses import TextResponse
 
         # Try different value types
         payload = {'key': 'value',

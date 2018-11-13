@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-from test_runner import AbstractCommandTest
+from .test_runner import AbstractCommandTest
 
 
 class MoveOutOfWayTest(AbstractCommandTest):

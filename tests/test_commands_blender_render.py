@@ -3,7 +3,7 @@ import subprocess
 
 from unittest.mock import patch, call
 
-from test_runner import AbstractCommandTest
+from .test_runner import AbstractCommandTest
 
 
 class BlenderRenderTest(AbstractCommandTest):
@@ -81,7 +81,7 @@ class BlenderRenderTest(AbstractCommandTest):
 
     def test_cli_args(self):
         """Test that CLI arguments in the blender_cmd setting are handled properly."""
-        from mock_responses import CoroMock
+        from .mock_responses import CoroMock
 
         filepath = str(Path(__file__).parent)
         settings = {
@@ -114,7 +114,7 @@ class BlenderRenderTest(AbstractCommandTest):
             )
 
     def test_python_expr(self):
-        from mock_responses import CoroMock
+        from .mock_responses import CoroMock
 
         filepath = str(Path(__file__).parent)
         settings = {

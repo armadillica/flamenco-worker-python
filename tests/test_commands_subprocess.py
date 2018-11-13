@@ -5,7 +5,7 @@ import tempfile
 
 import psutil
 
-from test_runner import AbstractCommandTest
+from .test_runner import AbstractCommandTest
 
 
 class PIDFileTest(AbstractCommandTest):
