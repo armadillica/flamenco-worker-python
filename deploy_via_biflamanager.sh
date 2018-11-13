@@ -10,7 +10,7 @@ pipenv install --dev --deploy
 pipenv run ./mkdistfile.py
 
 last_file=\$(ls -rt dist/flamenco-worker* | tail -n 1)
-dirname=\$(echo \$last_file | sed s/-linux.*//)
+dirname=\$(basename \$last_file | sed s/-linux.*//)
 tar_path=\$(pwd)/\$last_file
 
 echo
