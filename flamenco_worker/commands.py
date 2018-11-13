@@ -3,14 +3,20 @@
 import abc
 import asyncio
 import asyncio.subprocess
+import datetime
 import logging
 import pathlib
 import re
+import shlex
+import shutil
+import subprocess
+import tempfile
 import time
 import typing
 from pathlib import Path
 
 import attr
+import psutil
 
 from . import worker
 
@@ -241,13 +247,11 @@ class SleepCommand(AbstractCommand):
 def _timestamped_path(path: Path) -> Path:
     """Returns the path with its modification time appended to the name."""
 
-    from datetime import datetime
-
     mtime = path.stat().st_mtime
 
     # Round away the milliseconds, as those aren't all that interesting.
     # Uniqueness is ensured by calling _unique_path().
-    mdatetime = datetime.fromtimestamp(round(mtime))
+    mdatetime = datetime.datetime.fromtimestamp(round(mtime))
 
     # Make the ISO-8601 timestamp a bit more eye- and filename-friendly.
     iso = mdatetime.isoformat().replace('T', '_').replace(':', '')
@@ -258,8 +262,6 @@ def _timestamped_path(path: Path) -> Path:
 
 def _unique_path(path: Path) -> Path:
     """Returns the path, or if it exists, the path with a unique suffix."""
-
-    import re
 
     suf_re = re.compile(r'~([0-9]+)$')
 
@@ -376,7 +378,6 @@ class CopyFileCommand(AbstractCommand):
                                            self.command_name, dest.parent)
             dest.parent.mkdir(parents=True)
 
-        import shutil
         shutil.copy(str(src), str(dest))
         self.worker.output_produced(dest)
 
@@ -403,7 +404,6 @@ class RemoveTreeCommand(AbstractCommand):
         await self.worker.register_log(msg)
 
         if path.is_dir():
-            import shutil
             shutil.rmtree(str(path))
         else:
             path.unlink()
@@ -444,8 +444,6 @@ class AbstractSubprocessCommand(AbstractCommand):
         pid = int(pid_str)
         self._log.warning('Found PID file %s with PID %r', pidfile, pid)
 
-        import psutil
-
         try:
             proc = psutil.Process(pid)
         except psutil.NoSuchProcess:
@@ -455,9 +453,6 @@ class AbstractSubprocessCommand(AbstractCommand):
         return 'Subprocess from %s is still running: %s' % (pidfile, proc)
 
     async def subprocess(self, args: list):
-        import subprocess
-        import shlex
-
         cmd_to_log = ' '.join(shlex.quote(s) for s in args)
         self._log.info('Executing %s', cmd_to_log)
         await self.worker.register_log('Executing %s', cmd_to_log)
@@ -578,7 +573,6 @@ class ExecCommand(AbstractSubprocessCommand):
         return super().validate(settings)
 
     async def execute(self, settings: dict):
-        import shlex
         await self.subprocess(shlex.split(settings['cmd']))
 
 
@@ -613,8 +607,6 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         self.re_file_saved = re.compile(r"Saved: '(?P<filename>.*)'")
 
     def validate(self, settings: dict):
-        import shlex
-
         blender_cmd, err = self._setting(settings, 'blender_cmd', True)
         if err:
             return err
@@ -780,8 +772,6 @@ class BlenderRenderProgressiveCommand(BlenderRenderCommand):
 @command_executor('merge_progressive_renders')
 class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
     def validate(self, settings: dict):
-        import shlex
-
         blender_cmd, err = self._setting(settings, 'blender_cmd', True)
         if err:
             return err
@@ -817,8 +807,6 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         return super().validate(settings)
 
     async def execute(self, settings: dict):
-        import tempfile
-
         blendpath = Path(__file__).with_name('merge-exr.blend')
 
         cmd = settings['blender_cmd'][:]
@@ -855,8 +843,6 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
     async def move(self, src: Path, dst: Path):
         """Moves a file to another location."""
-
-        import shutil
 
         self._log.info('Moving %s to %s', src, dst)
 
