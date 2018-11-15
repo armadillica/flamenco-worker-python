@@ -506,10 +506,12 @@ class AbstractSubprocessCommand(AbstractCommand):
                     await self.worker.register_log(processed_line)
 
             retcode = await self.proc.wait()
-            self._log.info('Command %r (pid=%d) stopped with status code %s', args, pid, retcode)
+            cmdline = ' '.join(shlex.quote(arg) for arg in args)
+            self._log.info('Command %r (pid=%d) stopped with status code %s', cmdline, pid, retcode)
 
             if retcode:
-                raise CommandExecutionError('Command pid=%d failed with status %s' % (pid, retcode))
+                raise CommandExecutionError('Command %r (pid=%d) failed with status %s' %
+                                            (cmdline, pid, retcode))
         except asyncio.CancelledError:
             self._log.info('asyncio task got canceled, killing subprocess pid=%d', pid)
             await self.abort()
