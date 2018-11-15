@@ -153,7 +153,7 @@ class TaskUpdateQueue:
                     # TODO(sybren): delete all queued updates to the same URL?
                 else:
                     resp.raise_for_status()
-                    self._log.debug('Master accepted pushed update.')
+                    self._log.debug('Manager accepted pushed update.')
                 self._unqueue(rowid)
 
                 handled += 1
