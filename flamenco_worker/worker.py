@@ -49,10 +49,10 @@ class WorkerState(enum.Enum):
     SHUTTING_DOWN = 'shutting-down'
 
 
-@attr.s()
+@attr.s(auto_attribs=True)
 class PreTaskCheckParams:
-    pre_task_check_write = attr.ib(validator=attr.validators.instance_of(tuple), factory=tuple)
-    pre_task_check_read = attr.ib(validator=attr.validators.instance_of(tuple), factory=tuple)
+    pre_task_check_write: typing.List[str] = []
+    pre_task_check_read: typing.List[str] = []
 
 
 class PreTaskCheckFailed(PermissionError):
@@ -381,7 +381,7 @@ class FlamencoWorker:
         # Prevent outgoing queue overflowing by waiting until it's below the
         # threshold before starting another task.
         # TODO(sybren): introduce another worker state for this, and handle there.
-        with (await self._queue_lock):
+        async with self._queue_lock:
             queue_size = self.tuqueue.queue_size()
         if queue_size > QUEUE_SIZE_THRESHOLD:
             self._log.info('Task Update Queue size too large (%d > %d), waiting until it shrinks.',
@@ -474,7 +474,7 @@ class FlamencoWorker:
                 # Such a failure will always result in a failed task, even when
                 # self.failures_are_acceptable = True; only expected failures are
                 # acceptable then.
-                with (await self._queue_lock):
+                async with self._queue_lock:
                     self._queued_log_entries.append(traceback.format_exc())
                 await self.register_task_update(
                     task_status='failed',
@@ -533,7 +533,7 @@ class FlamencoWorker:
         if self._push_act_to_manager is not None:
             self._push_act_to_manager.cancel()
 
-        with (await self._queue_lock):
+        async with self._queue_lock:
             if self._queued_log_entries:
                 payload['log'] = '\n'.join(self._queued_log_entries)
                 self._queued_log_entries.clear()
@@ -596,7 +596,7 @@ class FlamencoWorker:
             log_entry %= fmt_args
 
         now = datetime.datetime.now(tz.tzutc()).isoformat()
-        with (await self._queue_lock):
+        async with self._queue_lock:
             self._queued_log_entries.append('%s: %s' % (now, log_entry))
             queue_size = len(self._queued_log_entries)
 

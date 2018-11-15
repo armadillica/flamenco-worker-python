@@ -134,7 +134,7 @@ class TaskUpdateQueue:
         Returns True iff the queue was empty, even before flushing.
         """
 
-        with (await self._queue_lock):
+        async with self._queue_lock:
             queue_is_empty = True
             queue_size_before = self.queue_size()
             handled = 0

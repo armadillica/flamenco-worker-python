@@ -26,6 +26,7 @@ changed functionality, fixed bugs).
   already is such a file with an alive PID.
 - Log lines produced by subprocesses are now prefixed with 'PID=nnn'.
 - Moved from pip-installing requirements.txt to Pipenv.
+- Upgraded Python from 3.5 to 3.7
 
 
 ## Version 2.1.0 (2018-01-04)
