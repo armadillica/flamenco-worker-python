@@ -93,8 +93,8 @@ class ExecCommandTest(AbstractCommandTest):
             call('exec: Starting'),
             call('Executing %s',
                  '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % sys.executable),
-            call('PID=%d > hello, this is two lines' % pid),
-            call('PID=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
+            call('pid=%d > hello, this is two lines' % pid),
+            call('pid=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
             call('exec: Finished'),
         ])
 
@@ -123,9 +123,10 @@ class ExecCommandTest(AbstractCommandTest):
         self.assertFalse(ok)
 
         # Check that the error has been reported.
-        decode_err = "exec.(task_id=12345, command_idx=0): Error executing: Command produced " \
-                     "non-UTF8 output, aborting: 'utf-8' codec can't decode byte 0x80 in " \
-                     "position 0: invalid start byte"
+        pid = cmd.proc.pid
+        decode_err = "exec.(task_id=12345, command_idx=0): Error executing: Command pid=%d " \
+                     "produced non-UTF8 output, aborting: 'utf-8' codec can't decode byte 0x80 "\
+                     "in position 0: invalid start byte" % pid
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
@@ -159,13 +160,13 @@ class ExecCommandTest(AbstractCommandTest):
             call('exec: Starting'),
             call('Executing %s',
                  '%s -c \'raise SystemExit("¡FAIL!")\'' % sys.executable),
-            call('PID=%d > ¡FAIL!' % pid),  # note the logged line doesn't end in a newline
+            call('pid=%d > ¡FAIL!' % pid),  # note the logged line doesn't end in a newline
             call('exec.(task_id=12345, command_idx=0): Error executing: '
-                 'Command failed with status 1')
+                 'Command pid=%d failed with status 1' % pid)
         ])
 
         # The update should NOT contain a new task status -- that is left to the Worker.
         self.fworker.register_task_update.assert_called_with(
             activity='exec.(task_id=12345, command_idx=0): Error executing: '
-                     'Command failed with status 1',
+                     'Command pid=%d failed with status 1' % pid,
         )

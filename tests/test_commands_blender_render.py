@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+from unittest import mock
 
 from unittest.mock import patch, call
 
@@ -71,6 +72,8 @@ class BlenderRenderTest(AbstractCommandTest):
         """Missing files should not abort the render."""
 
         line = 'Warning: Unable to open je moeder'
+        self.cmd.proc = mock.Mock()
+        self.cmd.proc.pid = 47
         self.loop.run_until_complete(self.cmd.process_line(line))
         self.fworker.register_task_update.assert_called_once_with(activity=line)
 

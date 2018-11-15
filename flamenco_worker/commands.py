@@ -465,10 +465,11 @@ class AbstractSubprocessCommand(AbstractCommand):
         )
 
         pid_path = self.subprocess_pid_file
+        pid = self.proc.pid
         if pid_path:
             # Require exclusive creation to prevent race conditions.
             with pid_path.open('x') as pidfile:
-                pidfile.write(str(self.proc.pid))
+                pidfile.write(str(pid))
 
         try:
             while not self.proc.stdout.at_eof():
@@ -476,8 +477,8 @@ class AbstractSubprocessCommand(AbstractCommand):
                     line = await asyncio.wait_for(self.proc.stdout.readline(),
                                                   self.readline_timeout)
                 except asyncio.TimeoutError:
-                    raise CommandExecutionError('Command timed out after %i seconds' %
-                                                self.readline_timeout)
+                    raise CommandExecutionError('Command pid=%d timed out after %i seconds' %
+                                                (pid, self.readline_timeout))
 
                 if len(line) == 0:
                     # EOF received, so let's bail.
@@ -487,22 +488,22 @@ class AbstractSubprocessCommand(AbstractCommand):
                     line = line.decode('utf8')
                 except UnicodeDecodeError as ex:
                     await self.abort()
-                    raise CommandExecutionError('Command produced non-UTF8 output, '
-                                                'aborting: %s' % ex)
+                    raise CommandExecutionError(
+                        'Command pid=%d produced non-UTF8 output, aborting: %s' % (pid, ex))
 
                 line = line.rstrip()
-                self._log.debug('Read line: %s', line)
+                self._log.debug('Read line pid=%d: %s', pid, line)
                 line = await self.process_line(line)
                 if line is not None:
                     await self.worker.register_log(line)
 
             retcode = await self.proc.wait()
-            self._log.info('Command %r stopped with status code %s', args, retcode)
+            self._log.info('Command %r (pid=%d) stopped with status code %s', args, pid, retcode)
 
             if retcode:
-                raise CommandExecutionError('Command failed with status %s' % retcode)
+                raise CommandExecutionError('Command pid=%d failed with status %s' % (pid, retcode))
         except asyncio.CancelledError:
-            self._log.info('asyncio task got canceled, killing subprocess.')
+            self._log.info('asyncio task got canceled, killing subprocess pid=%d', pid)
             await self.abort()
             raise
         finally:
@@ -512,7 +513,7 @@ class AbstractSubprocessCommand(AbstractCommand):
     async def process_line(self, line: str) -> typing.Optional[str]:
         """Processes the line, returning None to ignore it."""
 
-        return 'PID=%d > %s' % (self.proc.pid, line)
+        return 'pid=%d > %s' % (self.proc.pid, line)
 
     async def abort(self):
         """Aborts the command by killing the subprocess."""
@@ -521,7 +522,7 @@ class AbstractSubprocessCommand(AbstractCommand):
             self._log.debug("No process to kill. That's ok.")
             return
 
-        self._log.info('Terminating subprocess')
+        self._log.info('Terminating subprocess pid=%d', self.proc.pid)
 
         try:
             self.proc.terminate()
@@ -540,22 +541,25 @@ class AbstractSubprocessCommand(AbstractCommand):
         except asyncio.TimeoutError:
             pass
         else:
-            self._log.info('The process aborted with status code %s', retval)
+            self._log.info('The process pid=%d aborted with status code %s', self.proc.pid, retval)
             return
 
-        self._log.warning('The process did not stop in %d seconds, going to kill it', timeout)
+        self._log.warning('The process pid=%d did not stop in %d seconds, going to kill it',
+                          self.proc.pid, timeout)
         try:
             self.proc.kill()
         except ProcessLookupError:
-            self._log.debug("The process was already stopped, aborting is impossible. That's ok.")
+            self._log.debug("The process pid=%d was already stopped, aborting is impossible. "
+                            "That's ok.", self.proc.pid)
             return
         except AttributeError:
             # This can happen in some race conditions, it's fine.
-            self._log.debug("The process was not yet started, aborting is impossible. That's ok.")
+            self._log.debug("The process pid=%d was not yet started, aborting is impossible. "
+                            "That's ok.", self.proc.pid)
             return
 
         retval = await self.proc.wait()
-        self._log.info('The process aborted with status code %s', retval)
+        self._log.info('The process %d aborted with status code %s', self.proc.pid, retval)
 
 
 @command_executor('exec')
@@ -740,7 +744,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             self.worker.output_produced(m.group('filename'))
 
         # Not a render progress line; just log it for now.
-        return '> %s' % line
+        return 'pid=%d > %s' % (self.proc.pid, line)
 
 
 @command_executor('blender_render_progressive')
