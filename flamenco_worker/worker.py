@@ -105,7 +105,7 @@ class FlamencoWorker:
         default=None, init=False,
         validator=attr.validators.optional(attr.validators.instance_of(str))
     )
-    _queued_log_entries = attr.ib(default=attr.Factory(list), init=False)
+    _queued_log_entries = attr.ib(default=attr.Factory(list), init=False)  # type: typing.List[str]
     _queue_lock = attr.ib(default=attr.Factory(asyncio.Lock), init=False)
     last_log_push = attr.ib(
         default=attr.Factory(datetime.datetime.now),
@@ -185,7 +185,7 @@ class FlamencoWorker:
         return socket.gethostname()
 
     async def _keep_posting_to_manager(self, url: str, json: dict, *, use_auth=True,
-                                       may_retry_loop: bool):
+                                       may_retry_loop: bool) -> requests.Response:
         post_kwargs = {
             'json': json,
             'loop': self.loop,
@@ -509,6 +509,7 @@ class FlamencoWorker:
             self._log.debug('Scheduled delayed push to manager in %r seconds', delay_sec)
             await asyncio.sleep(delay_sec)
 
+            assert self.shutdown_future is not None
             if self.shutdown_future.done():
                 self._log.info('Shutting down, not pushing changes to manager.')
 
@@ -517,7 +518,7 @@ class FlamencoWorker:
 
         if self.task_is_silently_aborting:
             self._log.info('push_to_manager: task is silently aborting, will only push logs')
-            payload = {}
+            payload = {}  # type: typing.Mapping[str, typing.Any]
         else:
             payload = attr.asdict(self.last_task_activity)
             if self.current_task_status:
@@ -652,7 +653,7 @@ class FlamencoWorker:
 
         handler()
 
-    def ack_status_change(self, new_status: str) -> asyncio.Task:
+    def ack_status_change(self, new_status: str) -> typing.Optional[asyncio.Task]:
         """Confirm that we're now in a certain state.
 
         This ACK can be given without a request from the server, for example to support
