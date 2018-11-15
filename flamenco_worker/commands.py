@@ -744,7 +744,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
                 fmt = 'Fra:{fra} Mem:{mem} | Time:{time_sec} | Remaining:{remaining_sec} | {status}'
                 activity = fmt.format(**render_info)
             else:
-                self._log.debug('Unable to find remaining time in line: %s', line)
+                # self._log.debug('Unable to find remaining time in line: %s', line)
                 activity = line
             await self.worker.register_task_update(activity=activity)
 
