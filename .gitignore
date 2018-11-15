@@ -10,4 +10,4 @@
 /flamenco-worker.db
 /build/
 /dist/
-/flamenco-worker*.log
+/flamenco-worker*.log*
