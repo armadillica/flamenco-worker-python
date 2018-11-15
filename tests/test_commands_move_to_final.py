@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from .test_runner import AbstractCommandTest
+from tests.test_runner import AbstractCommandTest
 
 
 class MoveToFinalTest(AbstractCommandTest):

@@ -10,7 +10,7 @@ class CoroMockTest(unittest.TestCase):
         self.loop = construct_asyncio_loop()
 
     def test_setting_return_value(self):
-        from .mock_responses import CoroMock
+        from tests.mock_responses import CoroMock
 
         cm = CoroMock()
         cm.coro.return_value = '123'

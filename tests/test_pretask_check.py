@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 from unittest import mock
 
-from .test_worker import AbstractFWorkerTest
+from tests.test_worker import AbstractFWorkerTest
 
 
 # Mock merge_with_home_config() so that it doesn't overwrite actual config.
@@ -34,7 +34,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
             self.worker.pretask_check_params.pre_task_check_write = (existing, )
 
     def test_happy_remove_file(self):
-        from .mock_responses import EmptyResponse, CoroMock
+        from tests.mock_responses import EmptyResponse, CoroMock
 
         self.manager.post = CoroMock(return_value=EmptyResponse())
 
@@ -52,7 +52,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
         self.assertIsNone(self.worker.sleeping_fut)
 
     def test_happy_not_remove_file(self):
-        from .mock_responses import EmptyResponse, CoroMock
+        from tests.mock_responses import EmptyResponse, CoroMock
 
         self.manager.post = CoroMock(return_value=EmptyResponse())
 
@@ -74,7 +74,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
 
     @contextlib.contextmanager
     def write_check(self, post_run=None):
-        from .mock_responses import EmptyResponse, CoroMock
+        from tests.mock_responses import EmptyResponse, CoroMock
 
         self.manager.post = CoroMock(return_value=EmptyResponse())
 
@@ -123,7 +123,7 @@ class PretaskReadCheckTest(AbstractFWorkerTest):
 
     @contextlib.contextmanager
     def read_check(self, post_run=None):
-        from .mock_responses import EmptyResponse, CoroMock
+        from tests.mock_responses import EmptyResponse, CoroMock
 
         self.manager.post = CoroMock(return_value=EmptyResponse())
 

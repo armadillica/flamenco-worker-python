@@ -1,6 +1,6 @@
 from unittest.mock import Mock
 
-from .abstract_worker_test import AbstractWorkerTest
+from tests.abstract_worker_test import AbstractWorkerTest
 
 
 class MayIRunTest(AbstractWorkerTest):

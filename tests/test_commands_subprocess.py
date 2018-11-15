@@ -9,7 +9,7 @@ import time
 
 import psutil
 
-from .test_runner import AbstractCommandTest
+from tests.test_runner import AbstractCommandTest
 
 
 class PIDFileTest(AbstractCommandTest):

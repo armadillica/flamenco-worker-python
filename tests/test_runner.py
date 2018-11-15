@@ -1,12 +1,12 @@
 import asyncio
 from unittest.mock import Mock, call
 
-from .abstract_worker_test import AbstractWorkerTest
+from tests.abstract_worker_test import AbstractWorkerTest
 
 
 class AbstractCommandTest(AbstractWorkerTest):
     def setUp(self):
-        from .mock_responses import CoroMock
+        from tests.mock_responses import CoroMock
         from flamenco_worker.worker import FlamencoWorker
         from flamenco_worker.runner import TaskRunner
         from flamenco_worker.cli import construct_asyncio_loop
