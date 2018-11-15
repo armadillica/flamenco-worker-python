@@ -98,6 +98,7 @@ class BlenderRenderTest(AbstractCommandTest):
 
         cse = CoroMock(...)
         cse.coro.return_value.wait = CoroMock(return_value=0)
+        cse.coro.return_value.pid = 47
         with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse:
             self.loop.run_until_complete(self.cmd.run(settings))
 
@@ -132,6 +133,7 @@ class BlenderRenderTest(AbstractCommandTest):
 
         cse = CoroMock(...)
         cse.coro.return_value.wait = CoroMock(return_value=0)
+        cse.coro.return_value.pid = 47
         with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse:
             self.loop.run_until_complete(self.cmd.run(settings))
 
