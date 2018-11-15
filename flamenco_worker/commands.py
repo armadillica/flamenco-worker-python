@@ -445,12 +445,12 @@ class AbstractSubprocessCommand(AbstractCommand):
             return 'Empty PID file %s, refusing to create new subprocess just to be sure' % pidfile
 
         pid = int(pid_str)
-        self._log.warning('Found PID file %s with PID %r', pidfile, pid)
+        self._log.warning('Found PID file %s with pid=%d', pidfile, pid)
 
         try:
             proc = psutil.Process(pid)
         except psutil.NoSuchProcess:
-            self._log.warning('Deleting pidfile %s for stale PID %r', pidfile, pid)
+            self._log.warning('Deleting pidfile %s for stale pid=%d', pidfile, pid)
             pidfile.unlink()
             return None
         return 'Subprocess from %s is still running: %s' % (pidfile, proc)
