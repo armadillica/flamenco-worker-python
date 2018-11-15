@@ -341,6 +341,8 @@ class FlamencoWorker:
             self.loop.run_until_complete(self.manager.post('/sign-off', loop=self.loop))
         except Exception as ex:
             self._log.warning('Error signing off. Continuing with shutdown. %s', ex)
+
+        # TODO(Sybren): do this in a finally-clause:
         self.failures_are_acceptable = False
 
     def stop_fetching_tasks(self):
