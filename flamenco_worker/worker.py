@@ -404,38 +404,39 @@ class FlamencoWorker:
 
     async def fetch_task(self) -> typing.Optional[dict]:
         # TODO: use exponential backoff instead of retrying every fixed N seconds.
-        self._log.debug('Fetching task')
+        log = self._log.getChild('fetch_task')
+        log.debug('Fetching task')
         try:
             resp = await self.manager.post('/task', loop=self.loop)
         except requests.exceptions.RequestException as ex:
-            self._log.warning('Error fetching new task, will retry in %i seconds: %s',
+            log.warning('Error fetching new task, will retry in %i seconds: %s',
                               FETCH_TASK_FAILED_RETRY_DELAY, ex)
             self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
             return None
 
         if resp.status_code == 204:
-            self._log.debug('No tasks available, will retry in %i seconds.',
+            log.debug('No tasks available, will retry in %i seconds.',
                             FETCH_TASK_EMPTY_RETRY_DELAY)
             self.schedule_fetch_task(FETCH_TASK_EMPTY_RETRY_DELAY)
             return None
 
         if resp.status_code == 423:
             status_change = documents.StatusChangeRequest(**resp.json())
-            self._log.info('status change to %r requested when fetching new task',
+            log.info('status change to %r requested when fetching new task',
                            status_change.status_requested)
             self.change_status(status_change.status_requested)
             return None
 
         if resp.status_code != 200:
-            self._log.warning('Error %i fetching new task, will retry in %i seconds.',
+            log.warning('Error %i fetching new task, will retry in %i seconds.',
                               resp.status_code, FETCH_TASK_FAILED_RETRY_DELAY)
             self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
             return None
 
         task_info = resp.json()
         self.task_id = task_info['_id']
-        self._log.info('Received task: %s', self.task_id)
-        self._log.debug('Received task: %s', task_info)
+        log.info('Received task: %s', self.task_id)
+        log.debug('Received task: %s', task_info)
         return task_info
 
     async def execute_task(self, task_info: dict) -> None:
