@@ -15,6 +15,7 @@ wheel = "*"
 pyinstaller = "*"
 ipython = "*"
 pathlib2 = {version = "*", markers="python_version < '3.6'"}
+mypy = "*"
 
 [requires]
 python_version = "3.5"

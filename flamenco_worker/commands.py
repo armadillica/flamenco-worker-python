@@ -20,7 +20,7 @@ import psutil
 
 from . import worker
 
-command_handlers = {}
+command_handlers = {}  # type: typing.Mapping[str, typing.Type['AbstractCommand']]
 
 # Timeout of subprocess.stdout.readline() call.
 SUBPROC_READLINE_TIMEOUT = 3600  # seconds
@@ -82,8 +82,8 @@ class AbstractCommand(metaclass=abc.ABCMeta):
     # Set by __attr_post_init__()
     identifier = attr.ib(default=None, init=False,
                          validator=attr.validators.optional(attr.validators.instance_of(str)))
-    _log = attr.ib(default=None, init=False,
-                   validator=attr.validators.optional(attr.validators.instance_of(logging.Logger)))
+    _log = attr.ib(init=False, default=logging.getLogger('AbstractCommand'),
+                   validator=attr.validators.instance_of(logging.Logger))
 
     def __attrs_post_init__(self):
         self.identifier = '%s.(task_id=%s, command_idx=%s)' % (
@@ -174,8 +174,8 @@ class AbstractCommand(metaclass=abc.ABCMeta):
 
         return None
 
-    def _setting(self, settings: dict, key: str, is_required: bool, valtype: typing.Type = str) -> (
-            typing.Any, typing.Optional[str]):
+    def _setting(self, settings: dict, key: str, is_required: bool, valtype: typing.Type = str) \
+            -> typing.Tuple[typing.Any, typing.Optional[str]]:
         """Parses a setting, returns either (value, None) or (None, errormsg)"""
 
         try:
@@ -274,10 +274,10 @@ def _unique_path(path: Path) -> Path:
 
         suffix = m.group(1)
         try:
-            suffix = int(suffix)
+            suffix_value = int(suffix)
         except ValueError:
             continue
-        max_nr = max(max_nr, suffix)
+        max_nr = max(max_nr, suffix_value)
     return path.with_name(path.name + '~%i' % (max_nr + 1))
 
 
@@ -472,20 +472,22 @@ class AbstractSubprocessCommand(AbstractCommand):
                 pidfile.write(str(pid))
 
         try:
+            assert self.proc.stdout is not None
+
             while not self.proc.stdout.at_eof():
                 try:
-                    line = await asyncio.wait_for(self.proc.stdout.readline(),
-                                                  self.readline_timeout)
+                    line_bytes = await asyncio.wait_for(self.proc.stdout.readline(),
+                                                        self.readline_timeout)
                 except asyncio.TimeoutError:
                     raise CommandExecutionError('Command pid=%d timed out after %i seconds' %
                                                 (pid, self.readline_timeout))
 
-                if len(line) == 0:
+                if len(line_bytes) == 0:
                     # EOF received, so let's bail.
                     break
 
                 try:
-                    line = line.decode('utf8')
+                    line = line_bytes.decode('utf8')
                 except UnicodeDecodeError as ex:
                     await self.abort()
                     raise CommandExecutionError(
@@ -493,9 +495,9 @@ class AbstractSubprocessCommand(AbstractCommand):
 
                 line = line.rstrip()
                 self._log.debug('Read line pid=%d: %s', pid, line)
-                line = await self.process_line(line)
-                if line is not None:
-                    await self.worker.register_log(line)
+                processed_line = await self.process_line(line)
+                if processed_line is not None:
+                    await self.worker.register_log(processed_line)
 
             retcode = await self.proc.wait()
             self._log.info('Command %r (pid=%d) stopped with status code %s', args, pid, retcode)

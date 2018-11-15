@@ -4,6 +4,7 @@
 
 .cache/
 .coverage
+.mypy_cache/
 
 /flamenco_worker.egg-info/
 /flamenco-worker.db

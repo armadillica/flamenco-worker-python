@@ -4,9 +4,11 @@ import enum
 import itertools
 import pathlib
 import tempfile
+import traceback
 import typing
 
 import attr
+import requests.exceptions
 
 from . import attrs_extra
 from . import documents
@@ -184,8 +186,6 @@ class FlamencoWorker:
 
     async def _keep_posting_to_manager(self, url: str, json: dict, *, use_auth=True,
                                        may_retry_loop: bool):
-        import requests
-
         post_kwargs = {
             'json': json,
             'loop': self.loop,
@@ -369,9 +369,6 @@ class FlamencoWorker:
 
         :param delay: waits this many seconds before fetching a task.
         """
-
-        import traceback
-        import requests
 
         self.state = WorkerState.AWAKE
         self._cleanup_state_for_new_task()

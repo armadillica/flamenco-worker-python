@@ -30,9 +30,16 @@ class Response(HTTPResponse):
         self.fp = BytesIO(payload)
         self.debuglevel = 0
         self.strict = 0
-        self.headers = self.msg = None
+
+        # This is also done in the HTTPResponse __init__ function, but
+        # MyPy still doesn't like it.
+        self.headers = self.msg = None  # type: ignore
+
         self._method = None
-        self.begin()
+
+        # This function is available on the superclass, but still
+        # MyPy doesn't think it is.
+        self.begin()  # type: ignore
 
 
 def interface_addresses():

@@ -22,7 +22,9 @@ class tzutc(datetime.tzinfo):
 
         return True
 
-    __hash__ = None
+    # Assigning a different type than object.__hash__ (None resp. Callable)
+    # is not allowed by MyPy. Here it's intentional, though.
+    __hash__ = None  # type: ignore
 
     def __ne__(self, other):
         return not (self == other)

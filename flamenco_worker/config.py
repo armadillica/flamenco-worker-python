@@ -5,6 +5,7 @@ import configparser
 import datetime
 import pathlib
 import logging
+import typing
 
 from . import worker
 
@@ -28,7 +29,7 @@ DEFAULT_CONFIG = {
         ('push_act_max_interval_seconds', str(worker.PUSH_ACT_MAX_INTERVAL.total_seconds())),
     ]),
     'pre_task_check': collections.OrderedDict([]),
-}
+}  # type: typing.Mapping[str, typing.Mapping[str, typing.Any]]
 
 # Will be assigned to the config key 'task_types' when started with --test CLI arg.
 TESTING_TASK_TYPES = 'test-blender-render'
@@ -53,8 +54,8 @@ class ConfigParser(configparser.ConfigParser):
         secs = self.value(key, float)
         return datetime.timedelta(seconds=secs)
 
-    def erase(self, key: str) -> bool:
-        return self.set(CONFIG_SECTION, key, '')
+    def erase(self, key: str) -> None:
+        self.set(CONFIG_SECTION, key, '')
 
 
 def merge_with_home_config(new_conf: dict):
@@ -93,12 +94,12 @@ def load_config(config_file: pathlib.Path = None,
     if config_file:
         log.info('Loading configuration from %s', config_file)
         if not config_file.exists():
-            log.fatal('Config file %s does not exist', config_file)
+            log.error('Config file %s does not exist', config_file)
             raise SystemExit(47)
         loaded = confparser.read(str(config_file), encoding='utf8')
     else:
         if not GLOBAL_CONFIG_FILE.exists():
-            log.fatal('Config file %s does not exist', GLOBAL_CONFIG_FILE)
+            log.error('Config file %s does not exist', GLOBAL_CONFIG_FILE)
             raise SystemExit(47)
 
         config_files = [GLOBAL_CONFIG_FILE, HOME_CONFIG_FILE]

@@ -98,6 +98,7 @@ class TaskUpdateQueue:
 
         if self._db is None:
             self._connect_db()
+            assert self._db is not None
 
         result = self._db.execute('''
             SELECT rowid, url, payload
@@ -114,6 +115,7 @@ class TaskUpdateQueue:
         """Return the number of items queued."""
         if self._db is None:
             self._connect_db()
+            assert self._db is not None
 
         result = self._db.execute('SELECT count(*) FROM fworker_queue')
         count = next(result)[0]
