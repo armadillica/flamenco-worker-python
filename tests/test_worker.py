@@ -199,11 +199,11 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
         self.worker.schedule_fetch_task()
         self.manager.post.assert_not_called()
 
-        interesting_task = self.worker.single_iteration_task
-        self.loop.run_until_complete(self.worker.single_iteration_task)
+        interesting_task = self.worker.single_iteration_fut
+        self.loop.run_until_complete(self.worker.single_iteration_fut)
 
         # Another fetch-task task should have been scheduled.
-        self.assertNotEqual(self.worker.single_iteration_task, interesting_task)
+        self.assertNotEqual(self.worker.single_iteration_fut, interesting_task)
 
         self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
         self.tuqueue.queue.assert_has_calls([
@@ -255,7 +255,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
             await self.worker.stop_current_task()
 
         asyncio.ensure_future(stop(), loop=self.loop)
-        self.loop.run_until_complete(self.worker.single_iteration_task)
+        self.loop.run_until_complete(self.worker.single_iteration_fut)
 
         self.assertTrue(stop_called)
 
@@ -449,8 +449,8 @@ class WorkerSleepingTest(AbstractFWorkerTest):
 
         self.worker.schedule_fetch_task()
         with self.assertRaises(concurrent.futures.CancelledError):
-            self.loop.run_until_complete(self.worker.single_iteration_task)
+            self.loop.run_until_complete(self.worker.single_iteration_fut)
 
-        self.assertIsNotNone(self.worker.sleeping_task)
-        self.assertFalse(self.worker.sleeping_task.done())
-        self.assertTrue(self.worker.single_iteration_task.done())
+        self.assertIsNotNone(self.worker.sleeping_fut)
+        self.assertFalse(self.worker.sleeping_fut.done())
+        self.assertTrue(self.worker.single_iteration_fut.done())

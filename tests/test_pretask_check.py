@@ -44,12 +44,12 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
             self.worker.pretask_check_params.pre_task_check_write = (testfile, )
 
             self.worker.schedule_fetch_task()
-            self.asyncio_loop.run_until_complete(self.worker.single_iteration_task)
+            self.asyncio_loop.run_until_complete(self.worker.single_iteration_fut)
 
             self.assertFalse(testfile.exists(), '%s should have been deleted' % testfile)
 
         self.manager.post.assert_called_once_with('/task', loop=mock.ANY)
-        self.assertIsNone(self.worker.sleeping_task)
+        self.assertIsNone(self.worker.sleeping_fut)
 
     def test_happy_not_remove_file(self):
         from .mock_responses import EmptyResponse, CoroMock
@@ -65,12 +65,12 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
             self.worker.pretask_check_params.pre_task_check_write = (testfile, )
 
             self.worker.schedule_fetch_task()
-            self.asyncio_loop.run_until_complete(self.worker.single_iteration_task)
+            self.asyncio_loop.run_until_complete(self.worker.single_iteration_fut)
 
             self.assertTrue(testfile.exists(), '%s should not have been deleted' % testfile)
 
         self.manager.post.assert_called_once_with('/task', loop=mock.ANY)
-        self.assertIsNone(self.worker.sleeping_task)
+        self.assertIsNone(self.worker.sleeping_fut)
 
     @contextlib.contextmanager
     def write_check(self, post_run=None):
@@ -84,13 +84,13 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
             yield tdir
 
             self.worker.schedule_fetch_task()
-            self.asyncio_loop.run_until_complete(self.worker.single_iteration_task)
+            self.asyncio_loop.run_until_complete(self.worker.single_iteration_fut)
 
             if post_run is not None:
                 post_run()
 
         self.manager.post.assert_called_once_with('/ack-status-change/error', loop=mock.ANY)
-        self.assertFalse(self.worker.sleeping_task.done())
+        self.assertFalse(self.worker.sleeping_fut.done())
 
 
 # Mock merge_with_home_config() so that it doesn't overread actual config.
@@ -133,10 +133,10 @@ class PretaskReadCheckTest(AbstractFWorkerTest):
             yield tdir
 
             self.worker.schedule_fetch_task()
-            self.asyncio_loop.run_until_complete(self.worker.single_iteration_task)
+            self.asyncio_loop.run_until_complete(self.worker.single_iteration_fut)
 
             if post_run is not None:
                 post_run()
 
         self.manager.post.assert_called_once_with('/ack-status-change/error', loop=mock.ANY)
-        self.assertFalse(self.worker.sleeping_task.done())
+        self.assertFalse(self.worker.sleeping_fut.done())
