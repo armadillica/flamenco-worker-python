@@ -100,7 +100,7 @@ class AbstractCommand(metaclass=abc.ABCMeta):
 
         verr = self.validate(settings)
         if verr is not None:
-            self._log.warning('%s: Error in settings: %s', self.identifier, verr)
+            self._log.warning('Error in settings: %s', verr)
             await self.worker.register_log('%s: Error in settings: %s', self.identifier, verr)
             await self.worker.register_task_update(
                 task_status='failed',
@@ -438,8 +438,9 @@ class AbstractSubprocessCommand(AbstractCommand):
             # This is expected, as it means no subprocess is running.
             return None
         if not pid_str:
-            pidfile.unlink()
-            return None
+            # This could be an indication that a PID file is being written right now
+            # (already opened, but the content hasn't been written yet).
+            return 'Empty PID file %s, refusing to create new subprocess just to be sure' % pidfile
 
         pid = int(pid_str)
         self._log.warning('Found PID file %s with PID %r', pidfile, pid)
@@ -468,9 +469,14 @@ class AbstractSubprocessCommand(AbstractCommand):
         pid = self.proc.pid
         if pid_path:
             # Require exclusive creation to prevent race conditions.
-            with pid_path.open('x') as pidfile:
-                pidfile.write(str(pid))
-
+            try:
+                with pid_path.open('x') as pidfile:
+                    pidfile.write(str(pid))
+            except FileExistsError:
+                self._log.error('PID file %r already exists, killing just-spawned process pid=%d',
+                                pid_path, pid)
+                await self.abort()
+                raise
         try:
             assert self.proc.stdout is not None
 
