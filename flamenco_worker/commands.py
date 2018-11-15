@@ -458,6 +458,8 @@ class AbstractSubprocessCommand(AbstractCommand):
         self._log.info('Executing %s', cmd_to_log)
         await self.worker.register_log('Executing %s', cmd_to_log)
 
+        line_logger = self._log.getChild('line')
+
         self.proc = await asyncio.create_subprocess_exec(
             *args,
             stdin=subprocess.DEVNULL,
@@ -500,7 +502,7 @@ class AbstractSubprocessCommand(AbstractCommand):
                         'Command pid=%d produced non-UTF8 output, aborting: %s' % (pid, ex))
 
                 line = line.rstrip()
-                self._log.debug('Read line pid=%d: %s', pid, line)
+                line_logger.debug('Read line pid=%d: %s', pid, line)
                 processed_line = await self.process_line(line)
                 if processed_line is not None:
                     await self.worker.register_log(processed_line)
