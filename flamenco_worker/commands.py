@@ -608,6 +608,8 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
     substring_synchronizing = {'| Synchronizing object |', ' | Syncing '}
     seen_synchronizing_line = False
 
+    _last_activity_time: float = 0.0
+
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
 
@@ -621,6 +623,8 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         self.re_status = re.compile(r'\| (?P<status>[^\|]+)\s*$')
         self.re_path_not_found = re.compile(r"Warning: Path '.*' not found")
         self.re_file_saved = re.compile(r"Saved: '(?P<filename>.*)'")
+
+        self._last_activity_time = 0.0
 
     def validate(self, settings: dict):
         blender_cmd, err = self._setting(settings, 'blender_cmd', True)
@@ -737,7 +741,10 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
                    'the Synchronizing Objects lines)' % line
 
         render_info = self.parse_render_line(line)
-        if render_info:
+        now = time.time()
+        # Only update render info every this many seconds, and not for every line Blender produces.
+        if render_info and now - self._last_activity_time < 30:
+            self._last_activity_time = now
             # Render progress. Not interesting to log all of them, but we do use
             # them to update the render progress.
             # TODO: For now we return this as a string, but at some point we may want

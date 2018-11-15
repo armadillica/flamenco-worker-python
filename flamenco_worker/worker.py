@@ -667,6 +667,7 @@ class FlamencoWorker:
             return self.loop.create_task(post)
         except Exception:
             self._log.exception('unable to notify Manager')
+            return None
 
     def go_to_state_asleep(self):
         """Starts polling for wakeup calls."""
