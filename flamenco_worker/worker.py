@@ -375,7 +375,7 @@ class FlamencoWorker:
         self.state = WorkerState.AWAKE
         self._cleanup_state_for_new_task()
 
-        self._log.debug('Going to fetch task in %s seconds', delay)
+        # self._log.debug('Going to fetch task in %s seconds', delay)
         await asyncio.sleep(delay)
 
         # Prevent outgoing queue overflowing by waiting until it's below the
