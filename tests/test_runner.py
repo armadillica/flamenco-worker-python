@@ -162,11 +162,11 @@ class ExecCommandTest(AbstractCommandTest):
                  '%s -c \'raise SystemExit("¡FAIL!")\'' % sys.executable),
             call('pid=%d > ¡FAIL!' % pid),  # note the logged line doesn't end in a newline
             call('exec.(task_id=12345, command_idx=0): Error executing: '
-                 'Command pid=%d failed with status 1' % pid)
+                 'Command %s (pid=%d) failed with status 1' % (settings['cmd'], pid))
         ])
 
         # The update should NOT contain a new task status -- that is left to the Worker.
         self.fworker.register_task_update.assert_called_with(
             activity='exec.(task_id=12345, command_idx=0): Error executing: '
-                     'Command pid=%d failed with status 1' % pid,
+                     'Command %s (pid=%d) failed with status 1' % (settings['cmd'], pid),
         )
