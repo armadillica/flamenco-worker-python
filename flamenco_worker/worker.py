@@ -770,17 +770,18 @@ class FlamencoWorker:
 
         self._pre_task_check_read()
         self._pre_task_check_write()
-        self._log.debug('Pre-task sanity check OK')
+        self._log.getChild('sanity_check').debug('Pre-task sanity check OK')
 
     def _pre_task_check_read(self):
         pre_task_check_read = self.pretask_check_params.pre_task_check_read
         if not pre_task_check_read:
             return
 
-        self._log.debug('Performing pre-task read check')
+        log = self._log.getChild('sanity_check')
+        log.debug('Performing pre-task read check')
         for read_name in pre_task_check_read:
             read_path = pathlib.Path(read_name).absolute()
-            self._log.debug('   - Read check on %s', read_path)
+            log.debug('   - Read check on %s', read_path)
             if not read_path.exists():
                 raise PreTaskCheckFailed('%s does not exist' % read_path) from None
             if read_path.is_dir():
@@ -792,7 +793,7 @@ class FlamencoWorker:
                     # This is expected.
                     pass
                 except:
-                    self._log.exception('Unexpected shit happened')
+                    log.exception('Unexpected shit happened')
                     raise SystemExit(44)
             else:
                 try:
@@ -806,10 +807,11 @@ class FlamencoWorker:
         if not pre_task_check_write:
             return
 
-        self._log.debug('Performing pre-task write check')
+        log = self._log.getChild('sanity_check')
+        log.debug('Performing pre-task write check')
         for write_name in pre_task_check_write:
             write_path = pathlib.Path(write_name).absolute()
-            self._log.debug('   - Write check on %s', write_path)
+            log.debug('   - Write check on %s', write_path)
 
             post_delete = False
             try:
@@ -826,7 +828,7 @@ class FlamencoWorker:
                 try:
                     write_path.unlink()
                 except PermissionError:
-                    self._log.warning('Unable to delete write-test-file %s', write_path)
+                    log.warning('Unable to delete write-test-file %s', write_path)
 
 
 def generate_secret() -> str:
