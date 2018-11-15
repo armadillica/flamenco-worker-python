@@ -45,6 +45,8 @@ scene.render.filepath = "%(tmpdir)s/preview.jpg"
 bpy.ops.render.render(write_still=True)
 """
 
+log = logging.getLogger(__name__)
+
 
 def command_executor(cmdname):
     """Class decorator, registers a command executor."""
@@ -90,7 +92,7 @@ class AbstractCommand(metaclass=abc.ABCMeta):
             self.command_name,
             self.task_id,
             self.command_idx)
-        self._log = logging.getLogger('%s.%s' % (__name__, self.identifier))
+        self._log = log.getChild(self.identifier)
 
     async def run(self, settings: dict) -> bool:
         """Runs the command, parsing output and sending it back to the worker.
@@ -458,7 +460,7 @@ class AbstractSubprocessCommand(AbstractCommand):
         self._log.info('Executing %s', cmd_to_log)
         await self.worker.register_log('Executing %s', cmd_to_log)
 
-        line_logger = self._log.getChild('line')
+        line_logger = log.getChild(f'line.{self.identifier}')
 
         self.proc = await asyncio.create_subprocess_exec(
             *args,
