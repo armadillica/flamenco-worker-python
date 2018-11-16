@@ -1,12 +1,19 @@
 import attr
 import concurrent.futures
-import functools
+import json as json_module  # to prevent shadowing of 'json' parameter
 import requests
 
 from . import attrs_extra
 
 HTTP_RETRY_COUNT = 5
 HTTP_TIMEOUT = 3  # in seconds
+
+
+def elide(string: str, length: int) -> str:
+    """Cut the string to be no longer than 'length' characters."""
+    if len(string) <= length:
+        return string
+    return f'{string[:length-3]}...'
 
 
 @attr.s
@@ -78,7 +85,8 @@ class FlamencoManager:
             if json is None:
                 self._log.debug('%s %s', method, abs_url)
             else:
-                self._log.debug('%s %s with JSON: %s', method, abs_url, json)
+                for_log = elide(json_module.dumps(json), 80)
+                self._log.debug('%s %s with JSON: %s', method, abs_url, for_log)
 
         if headers is None:
             headers = {}
