@@ -252,7 +252,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
             stop_called = True
 
             await asyncio.sleep(0.2)
-            await self.worker.stop_current_task()
+            await self.worker.stop_current_task(self.worker.task_id)
 
         asyncio.ensure_future(stop(), loop=self.loop)
         self.loop.run_until_complete(self.worker.single_iteration_fut)
@@ -274,6 +274,61 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
         self.assertIn('log', last_args[1])
         self.assertTrue(last_args[1]['log'].endswith(
             'Worker 1234 stopped running this task, no longer allowed to run by Manager'))
+
+        self.assertEqual(self.tuqueue.queue.call_count, 2)
+
+    def test_stop_current_task_mismatch(self):
+
+        from tests.mock_responses import JsonResponse, CoroMock
+
+        self.manager.post = CoroMock()
+        # response when fetching a task
+        self.manager.post.coro.return_value = JsonResponse({
+            '_id': '58514d1e9837734f2e71b479',
+            'job': '58514d1e9837734f2e71b477',
+            'manager': '585a795698377345814d2f68',
+            'project': '',
+            'user': '580f8c66983773759afdb20e',
+            'name': 'sleep-14-26',
+            'status': 'processing',
+            'priority': 50,
+            'job_type': 'unittest',
+            'task_type': 'sleep',
+            'commands': [
+                {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
+            ]
+        })
+
+        self.worker.schedule_fetch_task()
+
+        stop_called = False
+
+        async def stop():
+            nonlocal stop_called
+            stop_called = True
+
+            await asyncio.sleep(0.2)
+            await self.worker.stop_current_task('other-task-id')
+
+        asyncio.ensure_future(stop(), loop=self.loop)
+        self.loop.run_until_complete(self.worker.single_iteration_fut)
+
+        self.assertTrue(stop_called)
+
+        self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
+        self.tuqueue.queue.assert_any_call(
+            '/tasks/58514d1e9837734f2e71b479/update',
+            {'task_progress_percentage': 0, 'activity': '',
+             'command_progress_percentage': 0, 'task_status': 'active',
+             'current_command_idx': 0},
+        )
+
+        # The task shouldn't be stopped, because the wrong task ID was requested to stop.
+        last_args, last_kwargs = self.tuqueue.queue.call_args
+        self.assertEqual(last_args[0], '/tasks/58514d1e9837734f2e71b479/update')
+        self.assertEqual(last_kwargs, {})
+        self.assertIn('activity', last_args[1])
+        self.assertEqual(last_args[1]['activity'], 'Task completed')
 
         self.assertEqual(self.tuqueue.queue.call_count, 2)
 

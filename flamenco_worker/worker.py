@@ -284,15 +284,24 @@ class FlamencoWorker:
         self.single_iteration_fut = asyncio.ensure_future(self.single_iteration(delay),
                                                           loop=self.loop)
 
-    async def stop_current_task(self):
+    async def stop_current_task(self, task_id: str):
         """Stops the current task by canceling the AsyncIO task.
 
         This causes a CancelledError in the self.single_iteration() function, which then takes care
         of the task status change and subsequent activity push.
+
+        :param task_id: the task ID to stop. Will only perform a stop if it
+            matches the currently executing task. This is to avoid race
+            conditions.
         """
 
         if not self.asyncio_execution_fut or self.asyncio_execution_fut.done():
             self._log.warning('stop_current_task() called but no task is running.')
+            return
+
+        if self.task_id != task_id:
+            self._log.warning('stop_current_task(%r) called, but current task is %r, not stopping',
+                              task_id, self.task_id)
             return
 
         self._log.warning('Stopping task %s', self.task_id)

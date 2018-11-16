@@ -38,11 +38,11 @@ class MayIRun:
             return
 
         if await self.may_i_run(task_id):
-            self._log.debug('Current task may run')
+            self._log.debug('Current task %s may run', task_id)
             return
 
         self._log.warning('We have to stop task %s', task_id)
-        await self.worker.stop_current_task()
+        await self.worker.stop_current_task(task_id)
 
     async def may_i_run(self, task_id: str) -> bool:
         """Asks the Manager whether we are still allowed to run the given task."""
