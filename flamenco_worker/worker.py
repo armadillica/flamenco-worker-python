@@ -528,9 +528,9 @@ class FlamencoWorker:
         self._log.info('Updating task %s with status %r and activity %r',
                        self.task_id, self.current_task_status, self.last_task_activity)
 
+        payload: typing.MutableMapping[str, typing.Any] = {}
         if self.task_is_silently_aborting:
             self._log.info('push_to_manager: task is silently aborting, will only push logs')
-            payload = {}  # type: typing.Mapping[str, typing.Any]
         else:
             payload = attr.asdict(self.last_task_activity)
             if self.current_task_status:
