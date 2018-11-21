@@ -412,7 +412,7 @@ class RemoveTreeCommand(AbstractCommand):
 
 
 @attr.s
-class AbstractSubprocessCommand(AbstractCommand):
+class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
     readline_timeout = attr.ib(default=SUBPROC_READLINE_TIMEOUT)
     proc = attr.ib(validator=attr.validators.instance_of(asyncio.subprocess.Process),
                    init=False)
