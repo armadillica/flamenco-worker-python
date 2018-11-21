@@ -16,7 +16,8 @@ CONFIG_SECTION = 'flamenco-worker'
 DEFAULT_CONFIG = {
     'flamenco-worker': collections.OrderedDict([
         ('manager_url', ''),
-        ('task_types', 'unknown sleep blender-render'),
+        # The 'video-encoding' tasks require ffmpeg to be installed, so it's not enabled by default.
+        ('task_types', 'sleep blender-render file-management exr-merge'),
         ('task_update_queue_db', 'flamenco-worker.db'),
         ('subprocess_pid_file', 'flamenco-worker-subprocess.pid'),
         ('may_i_run_interval_seconds', '5'),

@@ -27,6 +27,8 @@ changed functionality, fixed bugs).
 - Log lines produced by subprocesses are now prefixed with 'PID=nnn'.
 - Moved from pip-installing requirements.txt to Pipenv.
 - Upgraded Python from 3.5 to 3.7
+- Added a new command `create_video` which uses FFmpeg to create a video after rendering an image
+  sequence. It's up to Flamenco Server to include (or not) this command in a render job.
 
 
 ## Version 2.1.0 (2018-01-04)

@@ -6,15 +6,14 @@ Author: Sybren A. Stüvel <sybren@blender.studio>
 
 ## Installation
 
-Before you begin, make sure you have Flamenco Manager up and running.
-
-There are two ways to install Flamenco Worker:
-
-- If you have a distributable zip file (see [Packaging for distribution](#packaging-for-distribution))
-  unzip it, `cd` into it, then run `./flamenco-worker` (or `flamenco-worker.exe` on Windows).
-
-- If you have a copy of the source files, run `pipenv install` then run `flamenco-worker`. This
-  requires Python 3.7 or newer.
+- Make sure you have Flamenco Manager up and running.
+- Install [FFmpeg](https://ffmpeg.org/) and make sure the `ffmpeg` binary is on `$PATH`.
+- Install Flamenco Worker in one of two ways:
+    - If you have a distributable zip file (see
+      [Packaging for distribution](#packaging-for-distribution)) unzip it, `cd` into it,
+      then run `./flamenco-worker` (or `flamenco-worker.exe` on Windows).
+    - If you have a copy of the source files, run `pipenv install` then run `flamenco-worker`.
+      This requires Python 3.7 or newer.
 
 
 ## Upgrading

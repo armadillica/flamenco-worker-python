@@ -11,6 +11,7 @@ import shlex
 import shutil
 import subprocess
 import tempfile
+
 import time
 import typing
 from pathlib import Path
@@ -183,7 +184,8 @@ class AbstractCommand(metaclass=abc.ABCMeta):
         return None
 
     def _setting(self, settings: Settings, key: str, is_required: bool,
-                 valtype: InstanceOfType = str) \
+                 valtype: InstanceOfType = str,
+                 default: typing.Any = None) \
             -> typing.Tuple[typing.Any, typing.Optional[str]]:
         """Parses a setting, returns either (value, None) or (None, errormsg)"""
 
@@ -192,10 +194,12 @@ class AbstractCommand(metaclass=abc.ABCMeta):
         except KeyError:
             if is_required:
                 return None, 'Missing "%s"' % key
-            return None, None
+            settings.setdefault(key, default)
+            return default, None
 
         if value is None and not is_required:
-            return None, None
+            settings.setdefault(key, default)
+            return default, None
 
         if not isinstance(value, valtype):
             return None, '"%s" must be a %s, not a %s' % (key, valtype, type(value))
@@ -884,3 +888,65 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
         await self.worker.register_log('Moving %s to %s', src, dst)
         shutil.move(str(src), str(dst))
+
+
+@command_executor('create_video')
+class CreateVideoCommand(AbstractSubprocessCommand):
+    """Create a video from individual frames.
+
+    Requires FFmpeg to be installed and available with the 'ffmpeg' command.
+    """
+
+    codec_video = 'h264'
+
+    # Select some settings that are useful for scrubbing through the video.
+    constant_rate_factor = 17  # perceptually lossless
+    keyframe_interval = 1  # GOP size
+    max_b_frames: typing.Optional[int] = 0
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        # Check that FFmpeg can be found.
+        ffmpeg, err = self._setting(settings, 'ffmpeg', is_required=False, default='ffmpeg')
+        if err:
+            return err
+        executable_path: typing.Optional[str] = shutil.which(ffmpeg)
+        if not executable_path:
+            return f'FFmpeg command {ffmpeg!r} not found on $PATH'
+        self._log.debug('Found FFmpeg command at %r', executable_path)
+
+        # Check that we know our input and output image files.
+        input_files, err = self._setting(settings, 'input_files', is_required=True)
+        if err:
+            return err
+        self._log.debug('Input files: %s', input_files)
+        output_file, err = self._setting(settings, 'output_file', is_required=True)
+        if err:
+            return err
+        self._log.debug('Output file: %s', output_file)
+
+        fps, err = self._setting(settings, 'fps', is_required=True, valtype=(int, float))
+        if err:
+            return err
+        self._log.debug('Frame rate: %r fps', fps)
+        return None
+
+    async def execute(self, settings: Settings) -> None:
+        cmd = self._build_ffmpeg_command(settings)
+        await self.subprocess(cmd)
+
+    def _build_ffmpeg_command(self, settings) -> typing.List[str]:
+        cmd = [
+            settings['ffmpeg'],
+            '-pattern_type', 'glob',
+            '-i', settings['input_files'],
+            '-c:v', self.codec_video,
+            '-crf', str(self.constant_rate_factor),
+            '-g', str(self.keyframe_interval),
+            '-r', str(settings['fps']),
+        ]
+        if self.max_b_frames is not None:
+            cmd.extend(['-bf', str(self.max_b_frames)])
+        cmd += [
+            settings['output_file']
+        ]
+        return cmd
