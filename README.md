@@ -14,7 +14,7 @@ There are two ways to install Flamenco Worker:
   unzip it, `cd` into it, then run `./flamenco-worker` (or `flamenco-worker.exe` on Windows).
 
 - If you have a copy of the source files, run `pipenv install` then run `flamenco-worker`. This
-  requires Python 3.5.2 or newer.
+  requires Python 3.7 or newer.
 
 
 ## Upgrading
