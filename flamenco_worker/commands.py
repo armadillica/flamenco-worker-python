@@ -543,7 +543,7 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
     async def abort(self):
         """Aborts the command by killing the subprocess."""
 
-        if self.proc is None or self.proc == attr.NOTHING:
+        if getattr(self, 'proc', None) is None or self.proc == attr.NOTHING:
             self._log.debug("No process to kill. That's ok.")
             return
 
