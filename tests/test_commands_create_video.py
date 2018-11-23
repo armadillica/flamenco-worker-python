@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 class BlenderRenderTest(AbstractCommandTest):
     settings: typing.Dict[str, typing.Any] = {
-        'ffmpeg': sys.executable,
+        'ffmpeg_cmd': f'"{sys.executable}" -hide_banner',
         'input_files': '/tmp/*.png',
         'output_file': '/tmp/merged.mkv',
         'fps': 24,
@@ -30,31 +30,36 @@ class BlenderRenderTest(AbstractCommandTest):
             task_id='12345',
             command_idx=0,
         )
+        self.settings = self.settings.copy()
 
     def test_validate(self):
-        self.assertIn('not found on $PATH', self.cmd.validate({'ffmpeg': '/does/not/exist'}))
+        self.assertIn('not found on $PATH', self.cmd.validate({'ffmpeg_cmd': '/does/not/exist'}))
         self.assertIsNone(self.cmd.validate(self.settings))
 
     def test_validate_without_ffmpeg(self):
         settings = self.settings.copy()
-        del settings['ffmpeg']
+        del settings['ffmpeg_cmd']
 
         self.assertIsNone(self.cmd.validate(settings))
-        self.assertEqual('ffmpeg', settings['ffmpeg'],
+        self.assertEqual(['ffmpeg'], settings['ffmpeg_cmd'],
                          'The default setting should be stored in the dict after validation')
 
     def test_build_ffmpeg_cmd(self):
+        self.cmd.validate(self.settings)
+        cliargs = self.cmd._build_ffmpeg_command(self.settings)
+
         self.assertEqual([
-            sys.executable,
+            sys.executable, '-hide_banner',
             '-pattern_type', 'glob',
             '-i', '/tmp/*.png',
             '-c:v', 'h264',
             '-crf', '17',
             '-g', '1',
             '-r', '24',
+            '-y',
             '-bf', '0',
             '/tmp/merged.mkv',
-        ], self.cmd._build_ffmpeg_command(self.settings))
+        ], cliargs)
 
     def test_run_ffmpeg(self):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -62,7 +67,7 @@ class BlenderRenderTest(AbstractCommandTest):
             frame_dir = Path(__file__).with_name('test_frames')
             settings: typing.Dict[str, typing.Any] = {
                 **self.settings,
-                'ffmpeg': 'ffmpeg',  # use the real FFmpeg for this test.
+                'ffmpeg_cmd': 'ffmpeg',  # use the real FFmpeg for this test.
                 'input_files': f'{frame_dir}/*.png',
                 'output_file': str(outfile),
             }
@@ -77,5 +82,6 @@ class BlenderRenderTest(AbstractCommandTest):
             log.debug('Running %s', ' '.join(shlex.quote(arg) for arg in ffprobe_cmd))
             probe_out = subprocess.check_output(ffprobe_cmd)
             probed_duration = float(probe_out)
-            expect_duration = len(list(frame_dir.glob('*.png'))) / settings['fps']
+            fps: int = settings['fps']
+            expect_duration = len(list(frame_dir.glob('*.png'))) / fps
             self.assertAlmostEqual(expect_duration, probed_duration, places=3)

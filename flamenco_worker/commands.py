@@ -905,13 +905,16 @@ class CreateVideoCommand(AbstractSubprocessCommand):
     max_b_frames: typing.Optional[int] = 0
 
     def validate(self, settings: Settings) -> typing.Optional[str]:
-        # Check that FFmpeg can be found.
-        ffmpeg, err = self._setting(settings, 'ffmpeg', is_required=False, default='ffmpeg')
+        # Check that FFmpeg can be found and shlex-split the string.
+        ffmpeg_cmd, err = self._setting(settings, 'ffmpeg_cmd', is_required=False, default='ffmpeg')
         if err:
             return err
-        executable_path: typing.Optional[str] = shutil.which(ffmpeg)
+
+        cmd = shlex.split(ffmpeg_cmd)
+        executable_path: typing.Optional[str] = shutil.which(cmd[0])
         if not executable_path:
-            return f'FFmpeg command {ffmpeg!r} not found on $PATH'
+            return f'FFmpeg command {ffmpeg_cmd!r} not found on $PATH'
+        settings['ffmpeg_cmd'] = cmd
         self._log.debug('Found FFmpeg command at %r', executable_path)
 
         # Check that we know our input and output image files.
@@ -935,14 +938,17 @@ class CreateVideoCommand(AbstractSubprocessCommand):
         await self.subprocess(cmd)
 
     def _build_ffmpeg_command(self, settings) -> typing.List[str]:
+        assert isinstance(settings['ffmpeg_cmd'], list), \
+            'run validate() before _build_ffmpeg_command'
         cmd = [
-            settings['ffmpeg'],
+            *settings['ffmpeg_cmd'],
             '-pattern_type', 'glob',
             '-i', settings['input_files'],
             '-c:v', self.codec_video,
             '-crf', str(self.constant_rate_factor),
             '-g', str(self.keyframe_interval),
             '-r', str(settings['fps']),
+            '-y',
         ]
         if self.max_b_frames is not None:
             cmd.extend(['-bf', str(self.max_b_frames)])
