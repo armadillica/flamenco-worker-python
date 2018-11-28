@@ -51,8 +51,8 @@ class WorkerState(enum.Enum):
 
 @attr.s(auto_attribs=True)
 class PreTaskCheckParams:
-    pre_task_check_write: typing.List[str] = []
-    pre_task_check_read: typing.List[str] = []
+    pre_task_check_write: typing.Iterable[str] = []
+    pre_task_check_read: typing.Iterable[str] = []
 
 
 class PreTaskCheckFailed(PermissionError):
