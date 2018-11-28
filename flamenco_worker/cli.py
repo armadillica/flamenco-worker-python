@@ -173,6 +173,9 @@ def main():
             loop.run_until_complete(asyncio.wait_for(mir_work_task, 5))
         except requests.exceptions.ConnectionError:
             log.warning("Unable to connect to HTTP server, but that's fine as we're shutting down.")
+        except asyncio.TimeoutError:
+            log.debug("Timeout waiting for may-I-run task, "
+                      "but that's fine as we're shutting down.")
 
         fworker.shutdown()
 
