@@ -29,6 +29,8 @@ changed functionality, fixed bugs).
 - Upgraded Python from 3.5 to 3.7
 - Added a new command `create_video` which uses FFmpeg to create a video after rendering an image
   sequence. It's up to Flamenco Server to include (or not) this command in a render job.
+- Explicitly return tasks to the Manager queue when stopping them (that is, when going asleep or
+  shutting down). Requires Flamenco Manager 2.2 or newer.
 
 
 ## Version 2.1.0 (2018-01-04)
