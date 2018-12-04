@@ -44,6 +44,11 @@ class AbstractFWorkerTest(AbstractWorkerTest):
             shutdown_future=self.shutdown_future,
         )
 
+        # Prime the LRU cache to always return this hostname.
+        with unittest.mock.patch('socket.gethostname') as gethostname:
+            gethostname.return_value = 'ws-unittest'
+            self.worker.hostname()
+
     def tearDown(self):
         if self.worker._push_act_to_manager is not None:
             try:
@@ -70,12 +75,10 @@ class AbstractFWorkerTest(AbstractWorkerTest):
 
 class WorkerStartupTest(AbstractFWorkerTest):
     # Mock merge_with_home_config() so that it doesn't overwrite actual config.
-    @unittest.mock.patch('socket.gethostname')
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
-    def test_startup_already_registered(self, mock_merge_with_home_config, mock_gethostname):
+    def test_startup_already_registered(self, mock_merge_with_home_config):
         from tests.mock_responses import EmptyResponse, CoroMock
 
-        mock_gethostname.return_value = 'ws-unittest'
         self.manager.post = CoroMock(return_value=EmptyResponse())
 
         self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_loop=False))
@@ -90,14 +93,12 @@ class WorkerStartupTest(AbstractFWorkerTest):
         )
         self.tuqueue.queue.assert_not_called()
 
-    @unittest.mock.patch('socket.gethostname')
     @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
-    def test_startup_registration(self, mock_merge_with_home_config, mock_gethostname):
+    def test_startup_registration(self, mock_merge_with_home_config):
         from flamenco_worker.worker import detect_platform
         from tests.mock_responses import JsonResponse, CoroMock
 
         self.worker.worker_id = None
-        mock_gethostname.return_value = 'ws-unittest'
 
         self.manager.post = CoroMock(return_value=JsonResponse({
             '_id': '5555',
@@ -223,25 +224,29 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
     def test_stop_current_task(self):
         """Test that stopped tasks get status 'canceled'."""
 
-        from tests.mock_responses import JsonResponse, CoroMock
+        from tests.mock_responses import JsonResponse, CoroMock, EmptyResponse
 
         self.manager.post = CoroMock()
-        # response when fetching a task
-        self.manager.post.coro.return_value = JsonResponse({
-            '_id': '58514d1e9837734f2e71b479',
-            'job': '58514d1e9837734f2e71b477',
-            'manager': '585a795698377345814d2f68',
-            'project': '',
-            'user': '580f8c66983773759afdb20e',
-            'name': 'sleep-14-26',
-            'status': 'processing',
-            'priority': 50,
-            'job_type': 'unittest',
-            'task_type': 'sleep',
-            'commands': [
-                {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
-            ]
-        })
+        self.manager.post.coro.side_effect = [
+            # response when fetching a task
+            JsonResponse({
+                '_id': '58514d1e9837734f2e71b479',
+                'job': '58514d1e9837734f2e71b477',
+                'manager': '585a795698377345814d2f68',
+                'project': '',
+                'user': '580f8c66983773759afdb20e',
+                'name': 'sleep-14-26',
+                'status': 'processing',
+                'priority': 50,
+                'job_type': 'unittest',
+                'task_type': 'sleep',
+                'commands': [
+                    {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
+                ]
+            }),
+            EmptyResponse(),  # stopping (and thus returning) a task.
+            EmptyResponse(),  # signing off
+        ]
 
         self.worker.schedule_fetch_task()
 
@@ -259,7 +264,10 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
 
         self.assertTrue(stop_called)
 
-        self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
+        self.manager.post.assert_has_calls([
+            unittest.mock.call('/task', loop=self.asyncio_loop),
+            unittest.mock.call(f'/tasks/{self.worker.task_id}/return', loop=self.asyncio_loop),
+        ])
         self.tuqueue.queue.assert_any_call(
             '/tasks/58514d1e9837734f2e71b479/update',
             {'task_progress_percentage': 0, 'activity': '',
@@ -272,13 +280,13 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
         self.assertEqual(last_args[0], '/tasks/58514d1e9837734f2e71b479/update')
         self.assertEqual(last_kwargs, {})
         self.assertIn('log', last_args[1])
-        self.assertTrue(last_args[1]['log'].endswith(
-            'Worker 1234 stopped running this task, no longer allowed to run by Manager'))
+        self.assertIn(
+            'Worker 1234 (ws-unittest) stopped running this task, no longer '
+            'allowed to run by Manager', last_args[1]['log'])
 
         self.assertEqual(self.tuqueue.queue.call_count, 2)
 
     def test_stop_current_task_mismatch(self):
-
         from tests.mock_responses import JsonResponse, CoroMock
 
         self.manager.post = CoroMock()

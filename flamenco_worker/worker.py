@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import enum
+import functools
 import itertools
 import pathlib
 import tempfile
@@ -180,9 +181,18 @@ class FlamencoWorker:
         self.schedule_fetch_task()
 
     @staticmethod
+    @functools.lru_cache(maxsize=1)
     def hostname() -> str:
         import socket
         return socket.gethostname()
+
+    @property
+    def nickname(self) -> str:
+        return self.hostname()
+
+    @property
+    def identifier(self) -> str:
+        return f'{self.worker_id} ({self.nickname})'
 
     async def _keep_posting_to_manager(self, url: str, json: dict, *, use_auth=True,
                                        may_retry_loop: bool) -> requests.Response:
@@ -314,9 +324,34 @@ class FlamencoWorker:
         self.asyncio_execution_fut.cancel()
 
         await self.register_log('Worker %s stopped running this task,'
-                                ' no longer allowed to run by Manager', self.worker_id)
+                                ' no longer allowed to run by Manager', self.identifier)
+        await self.requeue_task_on_manager(task_id)
+
+
+    async def requeue_task_on_manager(self, task_id: str):
+        """Return a task to the Manager's queue for later execution."""
+
+        self._log.info('Returning task %s to the Manager queue', task_id)
+
         await self.push_to_manager()
         await self.tuqueue.flush_and_report(loop=self.loop)
+
+        url = f'/tasks/{task_id}/return'
+        try:
+            resp = await self.manager.post(url, loop=self.loop)
+        except IOError as ex:
+            self._log.exception('Exception POSTing to %s', url)
+            return
+
+        if resp.status_code != 204:
+            self._log.warning('Error %d returning task %s to Manager: %s',
+                              resp.status_code, resp.json())
+            await self.register_log('Worker %s could not return this task to the Manager queue',
+                                    self.identifier)
+            return
+
+        await self.register_log('Worker %s returned this task to the Manager queue.',
+                                self.identifier)
 
     def shutdown(self):
         """Gracefully shuts down any asynchronous tasks."""
