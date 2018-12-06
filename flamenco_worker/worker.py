@@ -5,6 +5,7 @@ import functools
 import itertools
 import pathlib
 import tempfile
+import time
 import traceback
 import typing
 
@@ -148,6 +149,8 @@ class FlamencoWorker:
                                       validator=attr.validators.instance_of(bool))
 
     _log = attrs_extra.log('%s.FlamencoWorker' % __name__)
+
+    _last_output_produced = 0.0  # seconds since epoch
 
     @property
     def active_task_id(self) -> typing.Optional[str]:
@@ -663,7 +666,16 @@ class FlamencoWorker:
 
         This performs a HTTP POST in a background task, returning as soon as
         the task is scheduled.
+
+        Only sends an update every X seconds, to avoid sending too many
+        requests when we output frames rapidly.
         """
+
+        now = time.time()
+        if now - self._last_output_produced < 30:
+            self._log.debug('Throttling POST to Manager /output-produced endpoint')
+            return
+        self._last_output_produced = now
 
         async def do_post():
             try:
