@@ -10,39 +10,27 @@ import tempfile
 from tests.test_runner import AbstractCommandTest
 
 log = logging.getLogger(__name__)
+frame_dir = Path(__file__).with_name('test_frames')
 
 
-class CreateVideoTest(AbstractCommandTest):
+class ConcatVideosTest(AbstractCommandTest):
     settings: typing.Dict[str, typing.Any] = {
         'ffmpeg_cmd': f'"{sys.executable}" -hide_banner',
-        'input_files': '/tmp/*.png',
+        'input_files': str(frame_dir / 'chunk-*.mkv'),
         'output_file': '/tmp/merged.mkv',
-        'fps': 24,
     }
 
     def setUp(self):
         super().setUp()
 
-        from flamenco_worker.commands import CreateVideoCommand
+        from flamenco_worker.commands import ConcatenateVideosCommand
 
-        self.cmd = CreateVideoCommand(
+        self.cmd = ConcatenateVideosCommand(
             worker=self.fworker,
             task_id='12345',
             command_idx=0,
         )
         self.settings = self.settings.copy()
-
-    def test_validate(self):
-        self.assertIn('not found on $PATH', self.cmd.validate({'ffmpeg_cmd': '/does/not/exist'}))
-        self.assertIsNone(self.cmd.validate(self.settings))
-
-    def test_validate_without_ffmpeg(self):
-        settings = self.settings.copy()
-        del settings['ffmpeg_cmd']
-
-        self.assertIsNone(self.cmd.validate(settings))
-        self.assertEqual(['ffmpeg'], settings['ffmpeg_cmd'],
-                         'The default setting should be stored in the dict after validation')
 
     def test_build_ffmpeg_cmd(self):
         self.cmd.validate(self.settings)
@@ -50,25 +38,19 @@ class CreateVideoTest(AbstractCommandTest):
 
         self.assertEqual([
             sys.executable, '-hide_banner',
-            '-pattern_type', 'glob',
-            '-r', '24',
-            '-i', '/tmp/*.png',
-            '-c:v', 'h264',
-            '-crf', '17',
-            '-g', '1',
+            '-f', 'concat',
+            '-i', str(frame_dir / 'ffmpeg-input.txt'),
+            '-c', 'copy',
             '-y',
-            '-bf', '0',
             '/tmp/merged.mkv',
         ], cliargs)
 
     def test_run_ffmpeg(self):
         with tempfile.TemporaryDirectory() as tempdir:
             outfile = Path(tempdir) / 'merged.mkv'
-            frame_dir = Path(__file__).with_name('test_frames')
             settings: typing.Dict[str, typing.Any] = {
                 **self.settings,
                 'ffmpeg_cmd': 'ffmpeg',  # use the real FFmpeg for this test.
-                'input_files': f'{frame_dir}/*.png',
                 'output_file': str(outfile),
             }
 
@@ -82,6 +64,6 @@ class CreateVideoTest(AbstractCommandTest):
             log.debug('Running %s', ' '.join(shlex.quote(arg) for arg in ffprobe_cmd))
             probe_out = subprocess.check_output(ffprobe_cmd)
             probed_duration = float(probe_out)
-            fps: int = settings['fps']
-            expect_duration = len(list(frame_dir.glob('*.png'))) / fps
-            self.assertAlmostEqual(expect_duration, probed_duration, places=3)
+
+            # The combined videos are 7 frames @ 24 frames per second.
+            self.assertAlmostEqual(0.291, probed_duration, places=3)

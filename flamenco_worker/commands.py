@@ -206,6 +206,18 @@ class AbstractCommand(metaclass=abc.ABCMeta):
 
         return value, None
 
+    async def _mkdir_if_not_exists(self, dirpath: Path):
+        """Create a directory if it doesn't exist yet.
+
+        Also logs a message to the Worker to indicate the directory was created.
+        """
+        if dirpath.exists():
+            return
+
+        await self.worker.register_log('%s: Directory %s does not exist; creating.',
+                                       self.command_name, dirpath)
+        dirpath.mkdir(parents=True)
+
 
 @command_executor('echo')
 class EchoCommand(AbstractCommand):
@@ -292,6 +304,29 @@ def _unique_path(path: Path) -> Path:
             continue
         max_nr = max(max_nr, suffix_value)
     return path.with_name(path.name + '~%i' % (max_nr + 1))
+
+
+def _numbered_path(directory: Path, fname_prefix: str, fname_suffix: str) -> Path:
+    """Return a unique Path with a number between prefix and suffix.
+
+    :return: directory / '{fname_prefix}001{fname_suffix}' where 001 is
+        replaced by the highest number + 1 if there already is a file with
+        such a prefix & suffix.
+    """
+
+    # See which suffixes are in use
+    max_nr = 0
+    len_prefix = len(fname_prefix)
+    len_suffix = len(fname_suffix)
+    for altpath in directory.glob(f'{fname_prefix}*{fname_suffix}'):
+        num_str: str = altpath.name[len_prefix:-len_suffix]
+
+        try:
+            num = int(num_str)
+        except ValueError:
+            continue
+        max_nr = max(max_nr, num)
+    return directory / f'{fname_prefix}{max_nr+1:03}{fname_suffix}'
 
 
 @command_executor('move_out_of_way')
@@ -386,10 +421,7 @@ class CopyFileCommand(AbstractCommand):
         self._log.info('Copying %s to %s', src, dest)
         await self.worker.register_log('%s: Copying %s to %s', self.command_name, src, dest)
 
-        if not dest.parent.exists():
-            await self.worker.register_log('%s: Target directory %s does not exist; creating.',
-                                           self.command_name, dest.parent)
-            dest.parent.mkdir(parents=True)
+        await self._mkdir_if_not_exists(dest.parent)
 
         shutil.copy(str(src), str(dest))
         self.worker.output_produced(dest)
@@ -420,6 +452,34 @@ class RemoveTreeCommand(AbstractCommand):
             shutil.rmtree(str(path))
         else:
             path.unlink()
+
+
+@command_executor('remove_file')
+class RemoveFileCommand(AbstractCommand):
+    def validate(self, settings: Settings):
+        path, err = self._setting(settings, 'path', True)
+        if err:
+            return err
+        if not path:
+            return "Parameter 'path' cannot be empty."
+
+    async def execute(self, settings: Settings):
+        path = Path(settings['path'])
+        if not path.exists():
+            msg = 'Path %s does not exist, so not removing.' % path
+            self._log.debug(msg)
+            await self.worker.register_log(msg)
+            return
+
+        if path.is_dir():
+            raise CommandExecutionError(f'Path {path} is a directory. Cannot remove with '
+                                        'this command; use remove_tree instead.')
+
+        msg = 'Removing file %s' % path
+        self._log.info(msg)
+        await self.worker.register_log(msg)
+
+        path.unlink()
 
 
 @attr.s
@@ -856,7 +916,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
         # set up node properties and render settings.
         output = Path(settings['output'])
-        output.parent.mkdir(parents=True, exist_ok=True)
+        await self._mkdir_if_not_exists(output.parent)
 
         with tempfile.TemporaryDirectory(dir=str(output.parent)) as tmpdir:
             tmppath = Path(tmpdir)
@@ -890,19 +950,57 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         shutil.move(str(src), str(dst))
 
 
-@command_executor('create_video')
-class CreateVideoCommand(AbstractSubprocessCommand):
-    """Create a video from individual frames.
+@command_executor('blender_render_audio')
+class BlenderRenderAudioCommand(BlenderRenderCommand):
+    def validate(self, settings: Settings):
+        err = super().validate(settings)
+        if err:
+            return err
 
-    Requires FFmpeg to be installed and available with the 'ffmpeg' command.
-    """
+        render_output, err = self._setting(settings, 'render_output', True)
+        if err:
+            return err
+        if not render_output:
+            return "'render_output' is a required setting"
 
-    codec_video = 'h264'
+        _, err = self._setting(settings, 'frame_start', False, int)
+        if err:
+            return err
+        _, err = self._setting(settings, 'frame_end', False, int)
+        if err:
+            return err
 
-    # Select some settings that are useful for scrubbing through the video.
-    constant_rate_factor = 17  # perceptually lossless
-    keyframe_interval = 1  # GOP size
-    max_b_frames: typing.Optional[int] = 0
+    def _build_blender_cmd(self, settings: Settings) -> typing.List[str]:
+        frame_start = settings.get('frame_start')
+        frame_end = settings.get('frame_end')
+        render_output = settings.get('render_output')
+
+        py_lines = [
+            "import bpy"
+        ]
+        if frame_start is not None:
+            py_lines.append(f'bpy.context.scene.frame_start = {frame_start}')
+        if frame_end is not None:
+            py_lines.append(f'bpy.context.scene.frame_end = {frame_end}')
+
+        py_lines.append(f"bpy.ops.sound.mixdown(filepath={render_output!r}, "
+                        f"codec='FLAC', container='FLAC', "
+                        f"accuracy=128)")
+        py_lines.append('bpy.ops.wm.quit_blender()')
+        py_script = '\n'.join(py_lines)
+
+        return [
+            *settings['blender_cmd'],
+            '--enable-autoexec',
+            '-noaudio',
+            '--background',
+            settings['filepath'],
+            '--python-exit-code', '47',
+            '--python-expr', py_script
+        ]
+
+
+class AbstractFFmpegCommand(AbstractSubprocessCommand, abc.ABC):
 
     def validate(self, settings: Settings) -> typing.Optional[str]:
         # Check that FFmpeg can be found and shlex-split the string.
@@ -916,6 +1014,49 @@ class CreateVideoCommand(AbstractSubprocessCommand):
             return f'FFmpeg command {ffmpeg_cmd!r} not found on $PATH'
         settings['ffmpeg_cmd'] = cmd
         self._log.debug('Found FFmpeg command at %r', executable_path)
+        return None
+
+    async def execute(self, settings: Settings) -> None:
+        cmd = self._build_ffmpeg_command(settings)
+        await self.subprocess(cmd)
+
+    def _build_ffmpeg_command(self, settings: Settings) -> typing.List[str]:
+        assert isinstance(settings['ffmpeg_cmd'], list), \
+            'run validate() before _build_ffmpeg_command'
+        cmd = [
+            *settings['ffmpeg_cmd'],
+            *self.ffmpeg_args(settings),
+        ]
+        return cmd
+
+    @abc.abstractmethod
+    def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        """Construct the FFmpeg arguments to execute.
+
+        Does not need to include the FFmpeg command itself, just
+        its arguments.
+        """
+        pass
+
+
+@command_executor('create_video')
+class CreateVideoCommand(AbstractFFmpegCommand):
+    """Create a video from individual frames.
+
+    Requires FFmpeg to be installed and available with the 'ffmpeg' command.
+    """
+
+    codec_video = 'h264'
+
+    # Select some settings that are useful for scrubbing through the video.
+    constant_rate_factor = 17  # perceptually lossless
+    keyframe_interval = 1  # GOP size
+    max_b_frames: typing.Optional[int] = 0
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        err = super().validate(settings)
+        if err:
+            return err
 
         # Check that we know our input and output image files.
         input_files, err = self._setting(settings, 'input_files', is_required=True)
@@ -933,26 +1074,210 @@ class CreateVideoCommand(AbstractSubprocessCommand):
         self._log.debug('Frame rate: %r fps', fps)
         return None
 
-    async def execute(self, settings: Settings) -> None:
-        cmd = self._build_ffmpeg_command(settings)
-        await self.subprocess(cmd)
-
-    def _build_ffmpeg_command(self, settings) -> typing.List[str]:
-        assert isinstance(settings['ffmpeg_cmd'], list), \
-            'run validate() before _build_ffmpeg_command'
-        cmd = [
-            *settings['ffmpeg_cmd'],
+    def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        args = [
             '-pattern_type', 'glob',
+            '-r', str(settings['fps']),
             '-i', settings['input_files'],
             '-c:v', self.codec_video,
             '-crf', str(self.constant_rate_factor),
             '-g', str(self.keyframe_interval),
-            '-r', str(settings['fps']),
             '-y',
         ]
         if self.max_b_frames is not None:
-            cmd.extend(['-bf', str(self.max_b_frames)])
-        cmd += [
+            args.extend(['-bf', str(self.max_b_frames)])
+        args += [
             settings['output_file']
         ]
-        return cmd
+        return args
+
+
+@command_executor('concatenate_videos')
+class ConcatenateVideosCommand(AbstractFFmpegCommand):
+    """Create a video by concatenating other videos.
+
+    Requires FFmpeg to be installed and available with the 'ffmpeg' command.
+    """
+
+    index_file: typing.Optional[Path] = None
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        err = super().validate(settings)
+        if err:
+            return err
+
+        # Check that we know our input and output image files.
+        input_files, err = self._setting(settings, 'input_files', is_required=True)
+        if err:
+            return err
+        self._log.debug('Input files: %s', input_files)
+        output_file, err = self._setting(settings, 'output_file', is_required=True)
+        if err:
+            return err
+        self._log.debug('Output file: %s', output_file)
+
+        return None
+
+    async def execute(self, settings: Settings) -> None:
+        await super().execute(settings)
+
+        if self.index_file is not None and self.index_file.exists():
+            try:
+                self.index_file.unlink()
+            except IOError:
+                msg = f'unable to unlink file {self.index_file}, ignoring'
+                self.worker.register_log(msg)
+                self._log.warning(msg)
+
+    def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        input_files = Path(settings['input_files']).absolute()
+        self.index_file = input_files.with_name('ffmpeg-input.txt')
+
+        # Construct the list of filenames for ffmpeg to process.
+        # The index file needs to sit next to the input files, as
+        # ffmpeg checks for 'unsafe paths'.
+        with self.index_file.open('w') as outfile:
+            for video_path in sorted(input_files.parent.glob(input_files.name)):
+                escaped = str(video_path.name).replace("'", "\\'")
+                print("file '%s'" % escaped, file=outfile)
+
+        output_file = Path(settings['output_file'])
+        self._log.debug('Output file: %s', output_file)
+
+        args = [
+            '-f', 'concat',
+            '-i', str(self.index_file),
+            '-c', 'copy',
+            '-y',
+            str(output_file),
+        ]
+        return args
+
+
+@command_executor('mux_audio')
+class MuxAudioCommand(AbstractFFmpegCommand):
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        err = super().validate(settings)
+        if err:
+            return err
+
+        # Check that we know our input and output image files.
+        audio_file, err = self._setting(settings, 'audio_file', is_required=True)
+        if err:
+            return err
+        if not Path(audio_file).exists():
+            return f'Audio file {audio_file} does not exist'
+        self._log.debug('Audio file: %s', audio_file)
+
+        video_file, err = self._setting(settings, 'video_file', is_required=True)
+        if err:
+            return err
+        if not Path(video_file).exists():
+            return f'Video file {video_file} does not exist'
+        self._log.debug('Video file: %s', video_file)
+
+        output_file, err = self._setting(settings, 'output_file', is_required=True)
+        if err:
+            return err
+        self._log.debug('Output file: %s', output_file)
+
+        return None
+
+    def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        audio_file = Path(settings['audio_file']).absolute()
+        video_file = Path(settings['video_file']).absolute()
+        output_file = Path(settings['output_file']).absolute()
+
+        args = [
+            '-i', str(audio_file),
+            '-i', str(video_file),
+            '-c', 'copy',
+            '-y',
+            str(output_file),
+        ]
+        return args
+
+
+@command_executor('encode_audio')
+class EncodeAudioCommand(AbstractFFmpegCommand):
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        err = super().validate(settings)
+        if err:
+            return err
+
+        # Check that we know our input and output image files.
+        input_file, err = self._setting(settings, 'input_file', is_required=True)
+        if err:
+            return err
+        if not Path(input_file).exists():
+            return f'Audio file {input_file} does not exist'
+        self._log.debug('Audio file: %s', input_file)
+
+        output_file, err = self._setting(settings, 'output_file', is_required=True)
+        if err:
+            return err
+        self._log.debug('Output file: %s', output_file)
+
+        _, err = self._setting(settings, 'bitrate', is_required=True)
+        if err:
+            return err
+        _, err = self._setting(settings, 'codec', is_required=True)
+        if err:
+            return err
+        return None
+
+    def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        input_file = Path(settings['input_file']).absolute()
+        output_file = Path(settings['output_file']).absolute()
+
+        args = [
+            '-i', str(input_file),
+            '-c:a', settings['codec'],
+            '-b:a', settings['bitrate'],
+            '-y',
+            str(output_file),
+        ]
+        return args
+
+
+@command_executor('move_with_counter')
+class MoveWithCounterCommand(AbstractCommand):
+    # Split '2018_12_06-spring.mkv' into a '2018_12_06' prefix and '-spring.mkv' suffix.
+    filename_parts = re.compile(r'(?P<prefix>^[0-9_]+)(?P<suffix>.*)$')
+
+    def validate(self, settings: Settings):
+        src, err = self._setting(settings, 'src', True)
+        if err:
+            return err
+        if not src:
+            return 'src may not be empty'
+        dest, err = self._setting(settings, 'dest', True)
+        if err:
+            return err
+        if not dest:
+            return 'dest may not be empty'
+
+    async def execute(self, settings: Settings):
+        src = Path(settings['src'])
+        if not src.exists():
+            raise CommandExecutionError('Path %s does not exist, unable to move' % src)
+
+        dest = Path(settings['dest'])
+        fname_parts = self.filename_parts.match(dest.name)
+        if fname_parts:
+            prefix = fname_parts.group('prefix') + '_'
+            suffix = fname_parts.group('suffix')
+        else:
+            prefix = dest.stem + '_'
+            suffix = dest.suffix
+        self._log.debug('Adding counter to output name between %r and %r', prefix, suffix)
+        dest = _numbered_path(dest.parent, prefix, suffix)
+
+        self._log.info('Moving %s to %s', src, dest)
+        await self.worker.register_log('%s: Moving %s to %s', self.command_name, src, dest)
+        await self._mkdir_if_not_exists(dest.parent)
+
+        shutil.move(str(src), str(dest))
+        self.worker.output_produced(dest)

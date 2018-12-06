@@ -6,6 +6,7 @@ changed functionality, fixed bugs).
 ## Version 2.2 (in development)
 
 - Always log the version of Flamenco Worker.
+- Requires Flamenco Manager 2.2 or newer.
 - Include missing merge-exr.blend, required for progressive rendering, in the distribution bundle.
 - Include `exr-merge` task type in default configuration, which is required for progressive
   rendering.
@@ -31,6 +32,12 @@ changed functionality, fixed bugs).
   sequence. It's up to Flamenco Server to include (or not) this command in a render job.
 - Explicitly return tasks to the Manager queue when stopping them (that is, when going asleep or
   shutting down). Requires Flamenco Manager 2.2 or newer.
+- Added support for commands used in the blender-video-chunks job type:
+    - blender_render_audio
+    - concat_videos
+    - create_video
+    - move_with_counter
+    - mux_audio
 
 
 ## Version 2.1.0 (2018-01-04)
