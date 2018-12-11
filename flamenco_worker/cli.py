@@ -176,6 +176,8 @@ def main():
         except asyncio.TimeoutError:
             log.debug("Timeout waiting for may-I-run task, "
                       "but that's fine as we're shutting down.")
+        except KeyboardInterrupt:
+            log.info('Keyboard interrupt while shutting down, ignoring as we are shutting down.')
 
         fworker.shutdown()
 
