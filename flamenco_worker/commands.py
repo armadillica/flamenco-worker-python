@@ -1049,8 +1049,8 @@ class CreateVideoCommand(AbstractFFmpegCommand):
     codec_video = 'h264'
 
     # Select some settings that are useful for scrubbing through the video.
-    constant_rate_factor = 17  # perceptually lossless
-    keyframe_interval = 1  # GOP size
+    constant_rate_factor = 23
+    keyframe_interval = 18  # GOP size
     max_b_frames: typing.Optional[int] = 0
 
     def validate(self, settings: Settings) -> typing.Optional[str]:
