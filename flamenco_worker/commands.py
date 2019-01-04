@@ -1299,3 +1299,34 @@ class MoveWithCounterCommand(AbstractCommand):
 
         shutil.move(str(src), str(dest))
         self.worker.output_produced(dest)
+
+
+@command_executor('create_python_file')
+class CreatePythonFile(AbstractCommand):
+    def validate(self, settings: Settings):
+        filepath, err = self._setting(settings, 'filepath', True)
+        if err:
+            return err
+        if not filepath:
+            return 'filepath may not be empty'
+        if not filepath.endswith('.py'):
+            return 'filepath must end in .py'
+
+        dest, err = self._setting(settings, 'contents', True)
+        if err:
+            return err
+
+    async def execute(self, settings: Settings):
+        filepath = Path(settings['filepath'])
+        await self._mkdir_if_not_exists(filepath.parent)
+
+        if filepath.exists():
+            msg = f'Overwriting Python file {filepath}'
+        else:
+            msg = f'Creating Python file {filepath}'
+
+        self._log.info(msg)
+        await self.worker.register_log('%s: %s', self.command_name, msg)
+        await self.worker.register_log('%s: contents:\n%s', self.command_name, settings['contents'])
+
+        filepath.write_text(settings['contents'], encoding='utf-8')
