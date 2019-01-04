@@ -740,19 +740,37 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         return super().validate(settings)
 
     async def execute(self, settings: Settings):
-        cmd = self._build_blender_cmd(settings)
+        cmd = await self._build_blender_cmd(settings)
 
         await self.worker.register_task_update(activity='Starting Blender')
         await self.subprocess(cmd)
 
-    def _build_blender_cmd(self, settings):
+    async def _build_blender_cmd(self, settings):
+        filepath = settings['filepath']
+
         cmd = settings['blender_cmd'][:]
         cmd += [
             '--enable-autoexec',
             '-noaudio',
             '--background',
-            settings['filepath'],
+            filepath,
         ]
+
+        # See if there is an override file to load.
+        try:
+            index = filepath.lower().rindex('.blend')
+        except ValueError:
+            # No '.blend' in the filepath. Weird.
+            pass
+        else:
+            override_filepath = filepath[:index] + '-overrides.py'
+            if Path(override_filepath).exists():
+                msg = f'Override file found in {override_filepath}'
+                self._log.info(msg)
+                await self.worker.register_log(msg)
+
+                cmd.extend(['--python', override_filepath])
+
         if settings.get('python_expr'):
             cmd.extend(['--python-expr', settings['python_expr']])
         if settings.get('render_output'):
@@ -855,8 +873,8 @@ class BlenderRenderProgressiveCommand(BlenderRenderCommand):
         if cycles_chunk < 1:
             return '"cycles_chunk" must be a positive integer'
 
-    def _build_blender_cmd(self, settings):
-        cmd = super()._build_blender_cmd(settings)
+    async def _build_blender_cmd(self, settings):
+        cmd = await super()._build_blender_cmd(settings)
 
         return cmd + [
             '--',
@@ -970,7 +988,7 @@ class BlenderRenderAudioCommand(BlenderRenderCommand):
         if err:
             return err
 
-    def _build_blender_cmd(self, settings: Settings) -> typing.List[str]:
+    async def _build_blender_cmd(self, settings: Settings) -> typing.List[str]:
         frame_start = settings.get('frame_start')
         frame_end = settings.get('frame_end')
         render_output = settings.get('render_output')

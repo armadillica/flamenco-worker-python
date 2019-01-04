@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import tempfile
 from unittest import mock
 
 from unittest.mock import patch
@@ -152,3 +153,44 @@ class BlenderRenderTest(AbstractCommandTest):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
             )
+
+    def test_cli_args_override_file(self):
+        """Test that an override file next to the blend file is recognised."""
+        from tests.mock_responses import CoroMock
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temppath = Path(tempdir)
+
+            blendpath = temppath / 'thefile.blend'
+            blendpath.touch()
+            override = temppath / 'thefile-overrides.py'
+            override.touch()
+
+            settings = {
+                # Point blender_cmd to this file so that we're sure it exists.
+                'blender_cmd': __file__,
+                'chunk_size': 100,
+                'frames': '1..2',
+                'format': 'JPEG',
+                'filepath': str(blendpath),
+            }
+
+            cse = CoroMock(...)
+            cse.coro.return_value.wait = CoroMock(return_value=0)
+            cse.coro.return_value.pid = 47
+            with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse:
+                self.loop.run_until_complete(self.cmd.run(settings))
+
+                mock_cse.assert_called_once_with(
+                    __file__,
+                    '--enable-autoexec',
+                    '-noaudio',
+                    '--background',
+                    str(blendpath),
+                    '--python', str(override),
+                    '--render-format', 'JPEG',
+                    '--render-frame', '1..2',
+                    stdin=subprocess.DEVNULL,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
