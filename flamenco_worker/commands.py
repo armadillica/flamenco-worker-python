@@ -763,13 +763,20 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
             # No '.blend' in the filepath. Weird.
             pass
         else:
-            override_filepath = filepath[:index] + '-overrides.py'
-            if Path(override_filepath).exists():
+            override_filename = filepath[:index] + '-overrides.py'
+            override_filepath = Path(override_filename)
+            if override_filepath.exists():
                 msg = f'Override file found in {override_filepath}'
                 self._log.info(msg)
                 await self.worker.register_log(msg)
 
-                cmd.extend(['--python', override_filepath])
+                await self.worker.register_log(
+                    f'Override file contains:\n{override_filepath.read_text("utf-8")}')
+
+                cmd.extend([
+                    '--python-exit-code', '42',
+                    '--python', override_filename,
+                ])
 
         if settings.get('python_expr'):
             cmd.extend(['--python-expr', settings['python_expr']])
