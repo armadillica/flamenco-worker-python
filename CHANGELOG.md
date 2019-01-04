@@ -38,6 +38,8 @@ changed functionality, fixed bugs).
     - create_video
     - move_with_counter
     - mux_audio
+- Added support for overriding Blender RNA properties for render commands.
+- Added a new command `create_python_file` for creating RNA override files.
 
 
 ## Version 2.1.0 (2018-01-04)
