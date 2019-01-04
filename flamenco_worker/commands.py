@@ -1126,7 +1126,7 @@ class ConcatenateVideosCommand(AbstractFFmpegCommand):
                 self.index_file.unlink()
             except IOError:
                 msg = f'unable to unlink file {self.index_file}, ignoring'
-                self.worker.register_log(msg)
+                await self.worker.register_log(msg)
                 self._log.warning(msg)
 
     def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
