@@ -187,6 +187,7 @@ class BlenderRenderTest(AbstractCommandTest):
                     '-noaudio',
                     '--background',
                     str(blendpath),
+                    '--python-exit-code', '42',
                     '--python', str(override),
                     '--render-format', 'JPEG',
                     '--render-frame', '1..2',
