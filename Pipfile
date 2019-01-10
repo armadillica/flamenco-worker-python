@@ -16,6 +16,7 @@ pyinstaller = "*"
 ipython = "*"
 mypy = "*"
 flamenco-worker = {editable = true,path = "."}
+colorama = {version = "*", sys_platform = "== 'win32'"}
 
 [requires]
 python_version = "3.7"
