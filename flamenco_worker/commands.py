@@ -326,7 +326,7 @@ def _numbered_path(directory: Path, fname_prefix: str, fname_suffix: str) -> Pat
         except ValueError:
             continue
         max_nr = max(max_nr, num)
-    return directory / f'{fname_prefix}{max_nr+1:03}{fname_suffix}'
+    return directory / f'{fname_prefix}{max_nr + 1:03}{fname_suffix}'
 
 
 @command_executor('move_out_of_way')
