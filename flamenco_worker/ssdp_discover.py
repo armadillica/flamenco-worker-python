@@ -37,9 +37,7 @@ class Response(HTTPResponse):
 
         self._method = None
 
-        # This function is available on the superclass, but still
-        # MyPy doesn't think it is.
-        self.begin()  # type: ignore
+        self.begin()
 
 
 def interface_addresses():
