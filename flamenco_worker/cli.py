@@ -291,8 +291,9 @@ def construct_asyncio_loop() -> asyncio.AbstractEventLoop:
     # not support subprocesses. ProactorEventLoop should be used instead.
     # Source: https://docs.python.org/3.5/library/asyncio-subprocess.html
     if platform.system() == 'Windows':
-        if not isinstance(loop, asyncio.ProactorEventLoop):
-            loop = asyncio.ProactorEventLoop()
+        # Silly MyPy doesn't understand this only runs on Windows.
+        if not isinstance(loop, asyncio.ProactorEventLoop):  # type: ignore
+            loop = asyncio.ProactorEventLoop()  # type: ignore
 
     asyncio.set_event_loop(loop)
     return loop
