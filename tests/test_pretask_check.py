@@ -58,7 +58,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
 
             self.assertFalse(testfile.exists(), '%s should have been deleted' % testfile)
 
-        self.manager.post.assert_called_once_with('/task', loop=mock.ANY)
+        self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
         self.assertIsNone(self.worker.sleeping_fut)
 
     def test_happy_not_remove_file(self):
@@ -79,7 +79,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
 
             self.assertTrue(testfile.exists(), '%s should not have been deleted' % testfile)
 
-        self.manager.post.assert_called_once_with('/task', loop=mock.ANY)
+        self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
         self.assertIsNone(self.worker.sleeping_fut)
 
     @contextlib.contextmanager
@@ -99,7 +99,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
             if post_run is not None:
                 post_run()
 
-        self.manager.post.assert_called_once_with('/ack-status-change/error', loop=mock.ANY)
+        self.manager.post.assert_called_once_with('/ack-status-change/error', loop=self.asyncio_loop)
         self.assertFalse(self.worker.sleeping_fut.done())
 
 
@@ -156,5 +156,5 @@ class PretaskReadCheckTest(AbstractFWorkerTest):
             if post_run is not None:
                 post_run()
 
-        self.manager.post.assert_called_once_with('/ack-status-change/error', loop=mock.ANY)
+        self.manager.post.assert_called_once_with('/ack-status-change/error', loop=self.asyncio_loop)
         self.assertFalse(self.worker.sleeping_fut.done())

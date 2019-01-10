@@ -323,7 +323,7 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
 
         self.assertTrue(stop_called)
 
-        self.manager.post.assert_called_once_with('/task', loop=unittest.mock.ANY)
+        self.manager.post.assert_called_once_with('/task', loop=self.asyncio_loop)
         self.tuqueue.queue.assert_any_call(
             '/tasks/58514d1e9837734f2e71b479/update',
             {'task_progress_percentage': 0, 'activity': '',

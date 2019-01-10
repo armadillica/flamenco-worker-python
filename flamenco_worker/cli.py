@@ -6,6 +6,7 @@ import logging
 import logging.config
 import os
 import pathlib
+import platform
 import typing
 
 import requests
@@ -282,17 +283,16 @@ def asyncio_report_tasks(signum=0, stackframe=None):
 
 
 def construct_asyncio_loop() -> asyncio.AbstractEventLoop:
+    loop = asyncio.get_event_loop()
+    if loop.is_closed():
+        loop = asyncio.new_event_loop()
+
     # On Windows, the default event loop is SelectorEventLoop which does
     # not support subprocesses. ProactorEventLoop should be used instead.
     # Source: https://docs.python.org/3.5/library/asyncio-subprocess.html
-    import sys
-
-    if sys.platform == 'win32':
-        loop = asyncio.ProactorEventLoop()
-    else:
-        loop = asyncio.get_event_loop()
-        if loop.is_closed():
-            loop = asyncio.new_event_loop()
+    if platform.system() == 'Windows':
+        if not isinstance(loop, asyncio.ProactorEventLoop):
+            loop = asyncio.ProactorEventLoop()
 
     asyncio.set_event_loop(loop)
     return loop
