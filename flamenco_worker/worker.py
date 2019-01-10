@@ -873,10 +873,10 @@ class FlamencoWorker:
             post_delete = False
             try:
                 if write_path.is_dir():
-                    testfile = tempfile.TemporaryFile('w', dir=str(write_path))
+                    testfile = tempfile.TemporaryFile('w', dir=str(write_path), encoding='utf8')
                 else:
                     post_delete = not write_path.exists()
-                    testfile = write_path.open('a+')
+                    testfile = write_path.open('a+', encoding='utf8')
                 with testfile as outfile:
                     outfile.write('♥')
             except PermissionError:
