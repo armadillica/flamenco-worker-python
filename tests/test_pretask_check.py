@@ -25,6 +25,7 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
 
     def test_write_file_exists(self):
         def post_run():
+            existing.chmod(0o777)
             self.assertTrue(existing.exists(), '%s should not have been deleted' % existing)
 
         with self.write_check(post_run) as tdir:
