@@ -5,6 +5,7 @@ changed functionality, fixed bugs).
 
 ## Version 2.2 (in development)
 
+- Upgraded Python from 3.5 to 3.7
 - Always log the version of Flamenco Worker.
 - Requires Flamenco Manager 2.2 or newer.
 - Include missing merge-exr.blend, required for progressive rendering, in the distribution bundle.
@@ -27,7 +28,6 @@ changed functionality, fixed bugs).
   already is such a file with an alive PID.
 - Log lines produced by subprocesses are now prefixed with 'PID=nnn'.
 - Moved from pip-installing requirements.txt to Pipenv.
-- Upgraded Python from 3.5 to 3.7
 - Added a new command `create_video` which uses FFmpeg to create a video after rendering an image
   sequence. It's up to Flamenco Server to include (or not) this command in a render job.
 - Explicitly return tasks to the Manager queue when stopping them (that is, when going asleep or
