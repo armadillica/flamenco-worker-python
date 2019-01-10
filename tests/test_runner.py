@@ -1,8 +1,13 @@
 import asyncio
 import logging
+import shlex
+import sys
+from pathlib import Path
 from unittest.mock import Mock, call
 
 from tests.abstract_worker_test import AbstractWorkerTest
+
+executable = Path(sys.executable).as_posix()
 
 
 class AbstractCommandTest(AbstractWorkerTest):
@@ -74,12 +79,10 @@ class ExecCommandTest(AbstractCommandTest):
         )
 
     def test_exec_python(self):
-        import shlex
-        import sys
         cmd = self.construct()
 
         # Use shlex to quote strings like this, so we're sure it's done well.
-        args = [sys.executable, '-c', r'print("hello, this is two lines\nYes, really.")']
+        args = [executable, '-c', r'print("hello, this is two lines\nYes, really.")']
         settings = {
             'cmd': ' '.join(shlex.quote(s) for s in args)
         }
@@ -95,7 +98,7 @@ class ExecCommandTest(AbstractCommandTest):
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
-                 '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % sys.executable),
+                 '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % executable),
             call('pid=%d > hello, this is two lines' % pid),
             call('pid=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
             call('exec: Finished'),
@@ -108,13 +111,11 @@ class ExecCommandTest(AbstractCommandTest):
         )
 
     def test_exec_invalid_utf(self):
-        import shlex
-        import sys
         cmd = self.construct()
 
         # Use shlex to quote strings like this, so we're sure it's done well.
         # Writes an invalid sequence of continuation bytes.
-        args = [sys.executable, '-c', r'import sys; sys.stdout.buffer.write(b"\x80\x80\x80")']
+        args = [executable, '-c', r'import sys; sys.stdout.buffer.write(bytes((0x80, 0x80, 0x80)))']
         settings = {
             'cmd': ' '.join(shlex.quote(s) for s in args)
         }
@@ -133,7 +134,7 @@ class ExecCommandTest(AbstractCommandTest):
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
-                 '%s -c \'import sys; sys.stdout.buffer.write(b"\\x80\\x80\\x80")\'' % sys.executable),
+                 '%s -c \'import sys; sys.stdout.buffer.write(bytes((0x80, 0x80, 0x80)))\'' % executable),
             call(decode_err),
         ])
 
@@ -141,12 +142,10 @@ class ExecCommandTest(AbstractCommandTest):
         self.fworker.register_task_update.assert_called_with(activity=decode_err)
 
     def test_exec_python_fails(self):
-        import shlex
-        import sys
         cmd = self.construct()
 
         # Use shlex to quote strings like this, so we're sure it's done well.
-        args = [sys.executable, '-c', r'raise SystemExit("¡FAIL!")']
+        args = [executable, '-c', r'raise SystemExit("FAIL")']
         settings = {
             'cmd': ' '.join(shlex.quote(s) for s in args)
         }
@@ -162,8 +161,8 @@ class ExecCommandTest(AbstractCommandTest):
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
-                 '%s -c \'raise SystemExit("¡FAIL!")\'' % sys.executable),
-            call('pid=%d > ¡FAIL!' % pid),  # note the logged line doesn't end in a newline
+                 '%s -c \'raise SystemExit("FAIL")\'' % executable),
+            call('pid=%d > FAIL' % pid),  # note the logged line doesn't end in a newline
             call('exec.(task_id=12345, command_idx=0): Error executing: '
                  'Command %s (pid=%d) failed with status 1' % (settings['cmd'], pid))
         ])
