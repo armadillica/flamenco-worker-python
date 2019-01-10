@@ -2,6 +2,7 @@ import logging
 import shutil
 import typing
 from pathlib import Path
+import platform
 import shlex
 import subprocess
 import sys
@@ -48,11 +49,21 @@ class CreateVideoTest(AbstractCommandTest):
         self.cmd.validate(self.settings)
         cliargs = self.cmd._build_ffmpeg_command(self.settings)
 
+        if platform.system() == 'Windows':
+            input_args = [
+                '-f', 'concat',
+                '-i', Path(self.settings['input_files']).absolute().with_name('ffmpeg-input.txt').as_posix(),
+            ]
+        else:
+            input_args = [
+                '-pattern_type', 'glob',
+                '-i', '/tmp/*.png',
+            ]
+
         self.assertEqual([
             Path(sys.executable).absolute().as_posix(), '-hide_banner',
-            '-pattern_type', 'glob',
             '-r', '24',
-            '-i', '/tmp/*.png',
+            *input_args,
             '-c:v', 'h264',
             '-crf', '23',
             '-g', '18',

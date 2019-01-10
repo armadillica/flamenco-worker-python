@@ -6,6 +6,7 @@ import asyncio.subprocess
 import datetime
 import logging
 import pathlib
+import platform
 import re
 import shlex
 import shutil
@@ -1026,6 +1027,7 @@ class BlenderRenderAudioCommand(BlenderRenderCommand):
 
 
 class AbstractFFmpegCommand(AbstractSubprocessCommand, abc.ABC):
+    index_file: typing.Optional[pathlib.Path] = None
 
     def validate(self, settings: Settings) -> typing.Optional[str]:
         # Check that FFmpeg can be found and shlex-split the string.
@@ -1045,6 +1047,14 @@ class AbstractFFmpegCommand(AbstractSubprocessCommand, abc.ABC):
         cmd = self._build_ffmpeg_command(settings)
         await self.subprocess(cmd)
 
+        if self.index_file is not None and self.index_file.exists():
+            try:
+                self.index_file.unlink()
+            except IOError:
+                msg = f'unable to unlink file {self.index_file}, ignoring'
+                await self.worker.register_log(msg)
+                self._log.warning(msg)
+
     def _build_ffmpeg_command(self, settings: Settings) -> typing.List[str]:
         assert isinstance(settings['ffmpeg_cmd'], list), \
             'run validate() before _build_ffmpeg_command'
@@ -1062,6 +1072,30 @@ class AbstractFFmpegCommand(AbstractSubprocessCommand, abc.ABC):
         its arguments.
         """
         pass
+
+    def create_index_file(self, input_files: pathlib.Path) -> pathlib.Path:
+        """Construct a list of filenames for ffmpeg to process.
+
+        The filenames are stored in a file 'ffmpeg-input.txt' that sits in the
+        same directory as the input files.
+
+        It is assumed that 'input_files' contains a glob pattern in the file
+        name, and not in any directory parts.
+
+        The index file will be deleted after successful execution of the ffmpeg
+        command.
+        """
+
+        # The index file needs to sit next to the input files, as
+        # ffmpeg checks for 'unsafe paths'.
+        self.index_file = input_files.absolute().with_name('ffmpeg-input.txt')
+
+        with self.index_file.open('w') as outfile:
+            for file_path in sorted(input_files.parent.glob(input_files.name)):
+                escaped = str(file_path.name).replace("'", "\\'")
+                print("file '%s'" % escaped, file=outfile)
+
+        return self.index_file
 
 
 @command_executor('create_video')
@@ -1100,10 +1134,27 @@ class CreateVideoCommand(AbstractFFmpegCommand):
         return None
 
     def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
+        input_files = Path(settings['input_files'])
+
         args = [
-            '-pattern_type', 'glob',
             '-r', str(settings['fps']),
-            '-i', settings['input_files'],
+        ]
+
+        if platform.system() == 'Windows':
+            # FFMpeg on Windows doesn't support globbing, so we have to do
+            # that in Python instead.
+            index_file = self.create_index_file(input_files)
+            args += [
+                '-f', 'concat',
+                '-i', index_file.as_posix(),
+            ]
+        else:
+            args += [
+                '-pattern_type', 'glob',
+                '-i', input_files.as_posix(),
+            ]
+
+        args += [
             '-c:v', self.codec_video,
             '-crf', str(self.constant_rate_factor),
             '-g', str(self.keyframe_interval),
@@ -1124,8 +1175,6 @@ class ConcatenateVideosCommand(AbstractFFmpegCommand):
     Requires FFmpeg to be installed and available with the 'ffmpeg' command.
     """
 
-    index_file: typing.Optional[Path] = None
-
     def validate(self, settings: Settings) -> typing.Optional[str]:
         err = super().validate(settings)
         if err:
@@ -1143,35 +1192,15 @@ class ConcatenateVideosCommand(AbstractFFmpegCommand):
 
         return None
 
-    async def execute(self, settings: Settings) -> None:
-        await super().execute(settings)
-
-        if self.index_file is not None and self.index_file.exists():
-            try:
-                self.index_file.unlink()
-            except IOError:
-                msg = f'unable to unlink file {self.index_file}, ignoring'
-                await self.worker.register_log(msg)
-                self._log.warning(msg)
-
     def ffmpeg_args(self, settings: Settings) -> typing.List[str]:
-        input_files = Path(settings['input_files']).absolute()
-        self.index_file = input_files.with_name('ffmpeg-input.txt')
-
-        # Construct the list of filenames for ffmpeg to process.
-        # The index file needs to sit next to the input files, as
-        # ffmpeg checks for 'unsafe paths'.
-        with self.index_file.open('w') as outfile:
-            for video_path in sorted(input_files.parent.glob(input_files.name)):
-                escaped = str(video_path.name).replace("'", "\\'")
-                print("file '%s'" % escaped, file=outfile)
+        index_file = self.create_index_file(Path(settings['input_files']))
 
         output_file = Path(settings['output_file'])
         self._log.debug('Output file: %s', output_file)
 
         args = [
             '-f', 'concat',
-            '-i', self.index_file.as_posix(),
+            '-i', index_file.as_posix(),
             '-c', 'copy',
             '-y',
             output_file.as_posix(),
