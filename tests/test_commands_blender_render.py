@@ -9,6 +9,7 @@ from tests.test_runner import AbstractCommandTest
 
 
 class BlenderRenderTest(AbstractCommandTest):
+    thisfile = Path(__file__).as_posix()
     def setUp(self):
         super().setUp()
 
@@ -90,7 +91,7 @@ class BlenderRenderTest(AbstractCommandTest):
         filepath = str(Path(__file__).parent)
         settings = {
             # Point blender_cmd to this file so that we're sure it exists.
-            'blender_cmd': '%s --with --cli="args for CLI"' % __file__,
+            'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
             'chunk_size': 100,
             'frames': '1..2',
             'format': 'JPEG',
@@ -104,7 +105,7 @@ class BlenderRenderTest(AbstractCommandTest):
             self.loop.run_until_complete(self.cmd.run(settings))
 
             mock_cse.assert_called_once_with(
-                __file__,
+                self.thisfile,
                 '--with',
                 '--cli=args for CLI',
                 '--enable-autoexec',
@@ -124,7 +125,7 @@ class BlenderRenderTest(AbstractCommandTest):
         filepath = str(Path(__file__).parent)
         settings = {
             # Point blender_cmd to this file so that we're sure it exists.
-            'blender_cmd': '%s --with --cli="args for CLI"' % __file__,
+            'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
             'python_expr': 'print("yay in \'quotes\'")',
             'chunk_size': 100,
             'frames': '1..2',
@@ -168,11 +169,11 @@ class BlenderRenderTest(AbstractCommandTest):
 
             settings = {
                 # Point blender_cmd to this file so that we're sure it exists.
-                'blender_cmd': __file__,
+                'blender_cmd': self.thisfile,
                 'chunk_size': 100,
                 'frames': '1..2',
                 'format': 'JPEG',
-                'filepath': str(blendpath),
+                'filepath': blendpath.as_posix(),
             }
 
             cse = CoroMock(...)
@@ -182,13 +183,13 @@ class BlenderRenderTest(AbstractCommandTest):
                 self.loop.run_until_complete(self.cmd.run(settings))
 
                 mock_cse.assert_called_once_with(
-                    __file__,
+                    self.thisfile,
                     '--enable-autoexec',
                     '-noaudio',
                     '--background',
-                    str(blendpath),
+                    blendpath.as_posix(),
                     '--python-exit-code', '42',
-                    '--python', str(override),
+                    '--python', override.as_posix(),
                     '--render-format', 'JPEG',
                     '--render-frame', '1..2',
                     stdin=subprocess.DEVNULL,
