@@ -46,6 +46,8 @@ class TaskUpdateQueue:
         self._db.isolation_level = ''
 
     def _disconnect_db(self):
+        if self._db is None:
+            return
         self._log.info('Disconnecting from database %s', self.db_fname)
         self._db.close()
         self._db = None
@@ -91,6 +93,8 @@ class TaskUpdateQueue:
 
             self._log.debug('Inspecting queued task updates.')
             await self.flush_and_catch(loop=loop)
+
+        self._disconnect_db()
         self._log.warning('Stopping work loop')
 
     def _queue(self) -> typing.Iterable[typing.Tuple[int, str, object]]:

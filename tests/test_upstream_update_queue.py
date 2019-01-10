@@ -1,6 +1,7 @@
 import asyncio
 import copy
 import datetime
+import logging
 import tempfile
 from unittest.mock import Mock
 
@@ -15,6 +16,8 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         from flamenco_worker.upstream_update_queue import TaskUpdateQueue
         from flamenco_worker.cli import construct_asyncio_loop
         from tests.mock_responses import CoroMock
+
+        logging.getLogger('flamenco_worker.upstream_update_queue').setLevel(logging.DEBUG)
 
         self.asyncio_loop = construct_asyncio_loop()
         self.shutdown_future = self.asyncio_loop.create_future()
@@ -31,6 +34,8 @@ class TaskUpdateQueueTest(AbstractWorkerTest):
         )
 
     def tearDown(self):
+        self.tuqueue._disconnect_db()
+        super().tearDown()
         self.tmpdir.cleanup()
 
     def test_queue_push(self):
