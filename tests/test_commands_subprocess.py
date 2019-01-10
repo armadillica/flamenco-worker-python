@@ -25,8 +25,8 @@ class PIDFileTest(AbstractCommandTest):
         )
 
     def test_alive(self):
-        with tempfile.NamedTemporaryFile(suffix='.pid') as tmpfile:
-            pidfile = Path(tmpfile.name)
+        with tempfile.TemporaryDirectory(suffix='.pid') as tmpdir:
+            pidfile = Path(tmpdir) / 'pidfile.pid'
             my_pid = os.getpid()
             pidfile.write_text(str(my_pid))
 
@@ -37,8 +37,8 @@ class PIDFileTest(AbstractCommandTest):
             self.assertIn(str(psutil.Process(my_pid)), msg)
 
     def test_alive_newlines(self):
-        with tempfile.NamedTemporaryFile(suffix='.pid') as tmpfile:
-            pidfile = Path(tmpfile.name)
+        with tempfile.TemporaryDirectory(suffix='.pid') as tmpdir:
+            pidfile = Path(tmpdir) / 'pidfile.pid'
             my_pid = os.getpid()
             pidfile.write_text('\n%s\n' % my_pid)
 
