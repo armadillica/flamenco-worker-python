@@ -296,6 +296,22 @@ class FlamencoWorker:
 
         self.single_iteration_fut = asyncio.ensure_future(self.single_iteration(delay),
                                                           loop=self.loop)
+        self.single_iteration_fut.add_done_callback(self._single_iteration_done)
+
+    def _single_iteration_done(self, future):
+        """Called when self.single_iteration_fut is done."""
+
+        try:
+            ex = future.exception()
+        except asyncio.CancelledError:
+            self._log.debug('single iteration future was cancelled')
+            return
+
+        if ex is None:
+            self._log.debug('single iteration completed without exceptions')
+            return
+
+        self._log.error('Unhandled %s running single iteration: %s', type(ex).__name__, ex)
 
     async def stop_current_task(self, task_id: str):
         """Stops the current task by canceling the AsyncIO task.
