@@ -920,6 +920,10 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         if '"' in output:
             return 'Double quotes are not allowed in filenames: %r' % output
 
+        settings['input1'] = Path(input1).as_posix()
+        settings['input2'] = Path(input2).as_posix()
+        settings['output'] = Path(output).as_posix()
+
         _, err = self._setting(settings, 'weight1', True, int)
         if err: return err
 
@@ -937,7 +941,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
             '--enable-autoexec',
             '-noaudio',
             '--background',
-            str(blendpath),
+            blendpath.as_posix(),
         ]
 
         # set up node properties and render settings.
@@ -948,7 +952,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
             tmppath = Path(tmpdir)
             assert tmppath.exists()
 
-            settings['tmpdir'] = tmpdir
+            settings['tmpdir'] = tmppath.as_posix()
             cmd += [
                 '--python-expr', MERGE_EXR_PYTHON % settings
             ]
@@ -968,6 +972,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
         self._log.info('Moving %s to %s', src, dst)
 
+        assert src.exists()
         assert src.is_file()
         assert not dst.exists() or dst.is_file()
         assert dst.exists() or dst.parent.exists()
