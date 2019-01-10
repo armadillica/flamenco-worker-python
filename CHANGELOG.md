@@ -3,7 +3,8 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.2 (in development)
+
+## Version 2.2 (2019-01-10)
 
 - Upgraded Python from 3.5 to 3.7
 - Always log the version of Flamenco Worker.
