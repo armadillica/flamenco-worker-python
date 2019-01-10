@@ -1,4 +1,5 @@
 import contextlib
+import platform
 import tempfile
 from pathlib import Path
 from unittest import mock
@@ -11,12 +12,20 @@ from tests.test_worker import AbstractFWorkerTest
 @mock.patch('socket.gethostname', new=lambda: 'ws-unittest')
 class PretaskWriteCheckTest(AbstractFWorkerTest):
     def test_not_writable_dir(self):
+        if platform.system() == 'Windows':
+            # Skip because of https://bugs.python.org/issue22107
+            return
+
         with self.write_check() as tdir:
             unwritable_dir = tdir / 'unwritable'
             unwritable_dir.mkdir(0o555)
             self.worker.pretask_check_params.pre_task_check_write = (unwritable_dir, )
 
     def test_not_writable_file(self):
+        if platform.system() == 'Windows':
+            # Skip because of https://bugs.python.org/issue22107
+            return
+
         with self.write_check() as tdir:
             unwritable_dir = tdir / 'unwritable'
             unwritable_dir.mkdir(0o555)
@@ -99,6 +108,10 @@ class PretaskWriteCheckTest(AbstractFWorkerTest):
 @mock.patch('socket.gethostname', new=lambda: 'ws-unittest')
 class PretaskReadCheckTest(AbstractFWorkerTest):
     def test_not_readable_dir(self):
+        if platform.system() == 'Windows':
+            # Skip because of https://bugs.python.org/issue22107
+            return
+
         def cleanup():
             unreadable_dir.chmod(0o755)
 
@@ -108,6 +121,10 @@ class PretaskReadCheckTest(AbstractFWorkerTest):
             self.worker.pretask_check_params.pre_task_check_read = (unreadable_dir, )
 
     def test_read_file_exists(self):
+        if platform.system() == 'Windows':
+            # Skip because of https://bugs.python.org/issue22107
+            return
+
         def post_run():
             self.assertTrue(existing.exists(), '%s should not have been deleted' % existing)
 
