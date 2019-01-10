@@ -15,7 +15,7 @@ frame_dir = Path(__file__).with_name('test_frames')
 
 class ConcatVideosTest(AbstractCommandTest):
     settings: typing.Dict[str, typing.Any] = {
-        'ffmpeg_cmd': f'"{sys.executable}" -hide_banner',
+        'ffmpeg_cmd': f'{Path(sys.executable).absolute().as_posix()!r} -hide_banner',
         'input_files': str(frame_dir / 'chunk-*.mkv'),
         'output_file': '/tmp/merged.mkv',
     }
@@ -37,9 +37,9 @@ class ConcatVideosTest(AbstractCommandTest):
         cliargs = self.cmd._build_ffmpeg_command(self.settings)
 
         self.assertEqual([
-            sys.executable, '-hide_banner',
+            Path(sys.executable).as_posix(), '-hide_banner',
             '-f', 'concat',
-            '-i', str(frame_dir / 'ffmpeg-input.txt'),
+            '-i', (frame_dir / 'ffmpeg-input.txt').as_posix(),
             '-c', 'copy',
             '-y',
             '/tmp/merged.mkv',
@@ -51,7 +51,7 @@ class ConcatVideosTest(AbstractCommandTest):
             settings: typing.Dict[str, typing.Any] = {
                 **self.settings,
                 'ffmpeg_cmd': 'ffmpeg',  # use the real FFmpeg for this test.
-                'output_file': str(outfile),
+                'output_file': outfile.as_posix(),
             }
 
             self.loop.run_until_complete(self.cmd.run(settings))
@@ -60,7 +60,7 @@ class ConcatVideosTest(AbstractCommandTest):
             ffprobe_cmd = [shutil.which('ffprobe'), '-v', 'error',
                            '-show_entries', 'format=duration',
                            '-of', 'default=noprint_wrappers=1:nokey=1',
-                           str(outfile)]
+                           outfile.as_posix()]
             log.debug('Running %s', ' '.join(shlex.quote(arg) for arg in ffprobe_cmd))
             probe_out = subprocess.check_output(ffprobe_cmd)
             probed_duration = float(probe_out)

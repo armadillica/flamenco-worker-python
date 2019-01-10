@@ -1171,10 +1171,10 @@ class ConcatenateVideosCommand(AbstractFFmpegCommand):
 
         args = [
             '-f', 'concat',
-            '-i', str(self.index_file),
+            '-i', self.index_file.as_posix(),
             '-c', 'copy',
             '-y',
-            str(output_file),
+            output_file.as_posix(),
         ]
         return args
 

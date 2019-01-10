@@ -88,7 +88,7 @@ class BlenderRenderTest(AbstractCommandTest):
         """Test that CLI arguments in the blender_cmd setting are handled properly."""
         from tests.mock_responses import CoroMock
 
-        filepath = str(Path(__file__).parent)
+        filepath = Path(__file__).parent.as_posix()
         settings = {
             # Point blender_cmd to this file so that we're sure it exists.
             'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
@@ -122,7 +122,7 @@ class BlenderRenderTest(AbstractCommandTest):
     def test_python_expr(self):
         from tests.mock_responses import CoroMock
 
-        filepath = str(Path(__file__).parent)
+        filepath = Path(__file__).parent.as_posix()
         settings = {
             # Point blender_cmd to this file so that we're sure it exists.
             'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
@@ -140,7 +140,7 @@ class BlenderRenderTest(AbstractCommandTest):
             self.loop.run_until_complete(self.cmd.run(settings))
 
             mock_cse.assert_called_once_with(
-                __file__,
+                self.thisfile,
                 '--with',
                 '--cli=args for CLI',
                 '--enable-autoexec',

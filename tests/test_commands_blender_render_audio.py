@@ -16,6 +16,8 @@ bpy.ops.wm.quit_blender()
 
 
 class RenderAudioTest(AbstractCommandTest):
+    thisfile = Path(__file__).as_posix()
+
     def setUp(self):
         super().setUp()
 
@@ -30,13 +32,12 @@ class RenderAudioTest(AbstractCommandTest):
     def test_cli_args(self):
         from tests.mock_responses import CoroMock
 
-        filepath = Path(__file__)
         settings = {
             # Point blender_cmd to this file so that we're sure it exists.
-            'blender_cmd': '%s --with --cli="args for CLI"' % __file__,
+            'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
             'frame_start': 1,
             'frame_end': 47,
-            'filepath': str(filepath),
+            'filepath': self.thisfile,
             'render_output': '/tmp/output.flac',
         }
 
@@ -47,13 +48,13 @@ class RenderAudioTest(AbstractCommandTest):
             self.loop.run_until_complete(self.cmd.run(settings))
 
             mock_cse.assert_called_once_with(
-                __file__,
+                self.thisfile,
                 '--with',
                 '--cli=args for CLI',
                 '--enable-autoexec',
                 '-noaudio',
                 '--background',
-                str(filepath),
+                self.thisfile,
                 '--python-exit-code', '47',
                 '--python-expr', expected_script,
                 stdin=subprocess.DEVNULL,
