@@ -123,7 +123,7 @@ Flamenco Worker responds to the following POSIX signals:
 
 ## Packaging for distribution
 
-First run `pip install -r requirements-dev.txt` to fetch developer dependencies. On Windows,
+First run `pipenv install --dev` to fetch developer dependencies. On Windows,
 download the [Microsoft Visual C++ 2010 Redistributable Package](https://www.microsoft.com/en-us/download/details.aspx?id=13523).
 On Ubuntu/Debian, make sure you have the 'binutils' package installed.
 
