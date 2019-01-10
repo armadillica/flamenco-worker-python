@@ -14,8 +14,9 @@ pytest-cov = "*"
 wheel = "*"
 pyinstaller = "*"
 ipython = "*"
-pathlib2 = {version = "*", markers="python_version < '3.6'"}
+pathlib2 = {version = "*",markers = "python_version < '3.6'"}
 mypy = "*"
+flamenco-worker = {editable = true,path = "."}
 
 [requires]
 python_version = "3.7"
