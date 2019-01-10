@@ -775,7 +775,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
 
                 cmd.extend([
                     '--python-exit-code', '42',
-                    '--python', override_filename,
+                    '--python', override_filepath.as_posix(),
                 ])
 
         if settings.get('python_expr'):
