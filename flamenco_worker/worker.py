@@ -897,7 +897,7 @@ class FlamencoWorker:
                     testfile = write_path.open('a+', encoding='utf8')
                 with testfile as outfile:
                     outfile.write('♥')
-            except PermissionError:
+            except (PermissionError, FileNotFoundError):
                 raise PreTaskCheckFailed('%s is not writable' % write_path) from None
             if post_delete:
                 try:
