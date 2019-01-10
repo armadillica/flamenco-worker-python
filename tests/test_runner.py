@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from unittest.mock import Mock, call
 
 from tests.abstract_worker_test import AbstractWorkerTest
@@ -17,6 +18,8 @@ class AbstractCommandTest(AbstractWorkerTest):
         self.fworker.trunner.subprocess_pid_file = None
         self.fworker.register_log = CoroMock()
         self.fworker.register_task_update = CoroMock()
+
+        logging.getLogger('flamenco_worker.commands').setLevel(logging.DEBUG)
 
     def tearDown(self):
         # This is required for subprocesses, otherwise unregistering signal handlers goes wrong.
