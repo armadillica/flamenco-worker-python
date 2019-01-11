@@ -7,7 +7,10 @@ Author: Sybren A. Stüvel <sybren@blender.studio>
 ## Installation
 
 - Make sure you have Flamenco Manager up and running.
-- Install [FFmpeg](https://ffmpeg.org/) and make sure the `ffmpeg` binary is on `$PATH`.
+- Install [Blender](https://blender.org/download) and make sure the `blender` binary is on `$PATH`.
+- Install [FFmpeg](https://ffmpeg.org/) and make sure the `ffmpeg` and `ffprobe` binaries are
+  on `$PATH`. If you only intend to run Flamenco Worker and not run any unit tests, you can
+  skip `ffprobe`.
 - Install Flamenco Worker in one of two ways:
     - If you have a distributable zip file (see
       [Packaging for distribution](#packaging-for-distribution)) unzip it, `cd` into it,
