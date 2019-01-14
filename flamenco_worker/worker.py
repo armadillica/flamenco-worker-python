@@ -808,7 +808,7 @@ class FlamencoWorker:
     async def sleeping(self):
         """Regularly polls the Manager to see if we're allowed to wake up again."""
 
-        while True:
+        while self.state != WorkerState.SHUTTING_DOWN and self.loop.is_running():
             try:
                 await asyncio.sleep(ASLEEP_POLL_STATUS_CHANGE_REQUESTED_DELAY)
                 resp = await self.manager.get('/status-change', loop=self.loop)
