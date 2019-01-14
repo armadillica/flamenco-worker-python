@@ -340,6 +340,41 @@ class TestWorkerTaskExecution(AbstractFWorkerTest):
 
         self.assertEqual(self.tuqueue.queue.call_count, 2)
 
+    def test_uncaught_exception(self):
+        from unittest.mock import call
+        from tests.mock_responses import JsonResponse, CoroMock
+
+        self.manager.post = CoroMock()
+        # response when fetching a task
+        self.manager.post.coro.return_value = JsonResponse({
+            '_id': '58514d1e9837734f2e71b479',
+            'job': '58514d1e9837734f2e71b477',
+            'manager': '585a795698377345814d2f68',
+            'project': '',
+            'user': '580f8c66983773759afdb20e',
+            'name': 'sleep-14-26',
+            'status': 'processing',
+            'priority': 50,
+            'job_type': 'unittest',
+            'task_type': 'sleep',
+            'commands': [
+                {'name': 'echo', 'settings': {'message': 'Preparing to sleep'}},
+                {'name': 'sleep', 'settings': {'time_in_seconds': 3}}
+            ]
+        })
+
+        self.tuqueue.queue.side_effect = None
+        self.worker.schedule_fetch_task()
+        interesting_task = self.worker.single_iteration_fut
+
+        with unittest.mock.patch('asyncio.sleep') as mock_sleep:
+            mock_sleep.side_effect = OSError('je moeder')
+            with self.assertRaises(OSError):
+                self.loop.run_until_complete(self.worker.single_iteration_fut)
+
+        # Another fetch-task task should have been scheduled.
+        self.assertNotEqual(self.worker.single_iteration_fut, interesting_task)
+
 
 class WorkerPushToMasterTest(AbstractFWorkerTest):
     def test_one_activity(self):

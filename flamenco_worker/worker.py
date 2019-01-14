@@ -23,6 +23,8 @@ FETCH_TASK_FAILED_RETRY_DELAY = 10  # when we failed obtaining a task
 FETCH_TASK_EMPTY_RETRY_DELAY = 5  # when there are no tasks to perform
 FETCH_TASK_DONE_SCHEDULE_NEW_DELAY = 3  # after a task is completed
 ERROR_RETRY_DELAY = 600  # after the pre-task sanity check failed
+UNCAUGHT_EXCEPTION_RETRY_DELAY = 60  # after single_iteration errored out
+
 
 PUSH_LOG_MAX_ENTRIES = 1000
 PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=30)
@@ -308,10 +310,12 @@ class FlamencoWorker:
             return
 
         if ex is None:
-            self._log.debug('single iteration completed without exceptions')
             return
 
         self._log.error('Unhandled %s running single iteration: %s', type(ex).__name__, ex)
+        self._log.error('Bluntly going to reschedule another iteration in %d seconds',
+                        UNCAUGHT_EXCEPTION_RETRY_DELAY)
+        self.schedule_fetch_task(UNCAUGHT_EXCEPTION_RETRY_DELAY)
 
     async def stop_current_task(self, task_id: str):
         """Stops the current task by canceling the AsyncIO task.
