@@ -86,7 +86,7 @@ if __name__ == '__main__':
     setuptools.setup(
         cmdclass={'zip': ZipCommand},
         name='flamenco-worker',
-        version='2.2.1-dev0',
+        version='2.2.1',
         description='Flamenco Worker implementation',
         author='Sybren A. Stüvel',
         author_email='sybren@blender.studio',
