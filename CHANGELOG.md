@@ -3,9 +3,10 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.3 (or 2.2.1, in development)
+## Version 2.2.1 (2019-01-14)
 
-- Fixed bug where an uncaught exception could make the Worker stop requesting tasks.
+- Fixed bug where an uncaught exception could make the Worker stop requesting tasks or go into an
+  infinite loop.
 
 
 ## Version 2.2 (2019-01-11)
