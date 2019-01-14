@@ -312,6 +312,9 @@ class FlamencoWorker:
         if ex is None:
             return
 
+        if isinstance(ex, asyncio.CancelledError):
+            return
+
         self._log.error('Unhandled %s running single iteration: %s', type(ex).__name__, ex)
         self._log.error('Bluntly going to reschedule another iteration in %d seconds',
                         UNCAUGHT_EXCEPTION_RETRY_DELAY)
