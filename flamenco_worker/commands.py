@@ -868,18 +868,31 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
 @command_executor('blender_render_progressive')
 class BlenderRenderProgressiveCommand(BlenderRenderCommand):
     def validate(self, settings: Settings):
+        if 'cycles_chunk' in settings:
+            return '"cycles_chunk" is an obsolete setting. Recreate the job using Flamenco ' \
+                   'Server 2.2 or newer, or use an older Worker.'
+
         err = super().validate(settings)
-        if err: return err
+        if err:
+            return err
 
         cycles_num_chunks, err = self._setting(settings, 'cycles_num_chunks', True, int)
-        if err: return err
+        if err:
+            return err
         if cycles_num_chunks < 1:
             return '"cycles_num_chunks" must be a positive integer'
 
-        cycles_chunk, err = self._setting(settings, 'cycles_chunk', True, int)
-        if err: return err
-        if cycles_chunk < 1:
-            return '"cycles_chunk" must be a positive integer'
+        cycles_chunk_start, err = self._setting(settings, 'cycles_chunk_start', True, int)
+        if err:
+            return err
+        if cycles_chunk_start < 1:
+            return '"cycles_chunk_start" must be a positive integer'
+
+        cycles_chunk_end, err = self._setting(settings, 'cycles_chunk_end', True, int)
+        if err:
+            return err
+        if cycles_chunk_end < 1:
+            return '"cycles_chunk_end" must be a positive integer'
 
     async def _build_blender_cmd(self, settings):
         cmd = await super()._build_blender_cmd(settings)
@@ -887,7 +900,8 @@ class BlenderRenderProgressiveCommand(BlenderRenderCommand):
         return cmd + [
             '--',
             '--cycles-resumable-num-chunks', str(settings['cycles_num_chunks']),
-            '--cycles-resumable-current-chunk', str(settings['cycles_chunk']),
+            '--cycles-resumable-start-chunk', str(settings['cycles_chunk_start']),
+            '--cycles-resumable-end-chunk', str(settings['cycles_chunk_end']),
         ]
 
 
