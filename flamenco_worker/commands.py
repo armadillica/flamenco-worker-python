@@ -1057,6 +1057,43 @@ class BlenderRenderAudioCommand(BlenderRenderCommand):
         ]
 
 
+@command_executor('exr_sequence_to_jpeg')
+class EXRSequenceToJPEGCommand(BlenderRenderCommand):
+    """Convert an EXR sequence to JPEG files.
+
+    This assumes the EXR files are named '{frame number}.exr', where the
+    frame number may have any number of leading zeroes.
+    """
+    pyscript = Path(__file__).parent / 'resources/exr_sequence_to_jpeg.py'
+
+    def validate(self, settings: Settings) -> typing.Optional[str]:
+        if not self.pyscript.exists():
+            raise FileNotFoundError(f'Resource script {self.pyscript} cannot be found')
+
+        exr_directory, err = self._setting(settings, 'exr_directory', True)
+        if err:
+            return err
+        if not exr_directory:
+            return '"exr_directory" may not be empty'
+
+        output_pattern, err = self._setting(settings, 'output_pattern', False,
+                                            default='preview-######.jpg')
+        if not output_pattern:
+            return '"output_pattern" may not be empty'
+        return super().validate(settings)
+
+    async def _build_blender_cmd(self, settings) -> typing.List[str]:
+        cmd = await super()._build_blender_cmd(settings)
+
+        return cmd + [
+            '--python-exit-code', '32',
+            '--python', str(self.pyscript),
+            '--',
+            '--exr-dir', settings['exr_directory'],
+            '--output-pattern', settings['output_pattern'],
+        ]
+
+
 class AbstractFFmpegCommand(AbstractSubprocessCommand, abc.ABC):
     index_file: typing.Optional[pathlib.Path] = None
 
