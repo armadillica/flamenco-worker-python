@@ -96,7 +96,7 @@ if __name__ == '__main__':
         classifiers=[
             'Operating System :: OS Independent',
             'Programming Language :: Python',
-            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.7',
         ],
         package_data={'flamenco_worker': ['merge-exr.blend']},
         install_requires=[
