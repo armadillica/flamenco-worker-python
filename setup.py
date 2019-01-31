@@ -56,7 +56,7 @@ class ZipCommand(Command):
             add_to_root(Path('LICENSE.txt'))
             add_to_root(Path('README.md'))
             add_to_root(Path('CHANGELOG.md'))
-            add_to_root(Path('flamenco_worker/merge-exr.blend'))
+            add_to_root(Path('flamenco_worker/resources/merge-exr.blend'))
 
             paths = collections.deque([Path('system-integration')])
             while paths:

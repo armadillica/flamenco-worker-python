@@ -947,7 +947,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         return super().validate(settings)
 
     async def execute(self, settings: Settings):
-        blendpath = Path(__file__).with_name('merge-exr.blend')
+        blendpath = Path(__file__).parent / 'resources/merge-exr.blend'
 
         cmd = settings['blender_cmd'][:]
         cmd += [
