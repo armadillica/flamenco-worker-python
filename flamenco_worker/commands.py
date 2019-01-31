@@ -527,7 +527,7 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
             return None
         return 'Subprocess from %s is still running: %s' % (pidfile, proc)
 
-    async def subprocess(self, args: list):
+    async def subprocess(self, args: typing.List[str]):
         cmd_to_log = ' '.join(shlex.quote(s) for s in args)
         self._log.info('Executing %s', cmd_to_log)
         await self.worker.register_log('Executing %s', cmd_to_log)
@@ -746,7 +746,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         await self.worker.register_task_update(activity='Starting Blender')
         await self.subprocess(cmd)
 
-    async def _build_blender_cmd(self, settings):
+    async def _build_blender_cmd(self, settings: Settings) -> typing.List[str]:
         filepath = settings['filepath']
 
         cmd = settings['blender_cmd'][:]
@@ -798,7 +798,7 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         m = self.re_global_progress.search(line)
         if not m:
             return None
-        info = m.groupdict()
+        info: typing.Dict[str, typing.Any] = m.groupdict()
         info['fra'] = int(info['fra'])
 
         m = self.re_time.search(line)
@@ -894,7 +894,7 @@ class BlenderRenderProgressiveCommand(BlenderRenderCommand):
         if cycles_chunk_end < 1:
             return '"cycles_chunk_end" must be a positive integer'
 
-    async def _build_blender_cmd(self, settings):
+    async def _build_blender_cmd(self, settings) -> typing.List[str]:
         cmd = await super()._build_blender_cmd(settings)
 
         return cmd + [
