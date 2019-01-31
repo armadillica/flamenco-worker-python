@@ -666,8 +666,7 @@ class ExecCommand(AbstractSubprocessCommand):
         await self.subprocess(shlex.split(settings['cmd']))
 
 
-@command_executor('blender_render')
-class BlenderRenderCommand(AbstractSubprocessCommand):
+class AbstractBlenderCommand(AbstractSubprocessCommand):
     re_global_progress = attr.ib(init=False)
     re_time = attr.ib(init=False)
     re_remaining = attr.ib(init=False)
@@ -708,23 +707,6 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
         if not Path(cmd[0]).exists():
             return 'blender_cmd %r does not exist' % cmd[0]
         settings['blender_cmd'] = cmd
-
-        render_output, err = self._setting(settings, 'render_output', False)
-        if err:
-            return err
-        if render_output:
-            outpath = Path(render_output).parent
-            try:
-                outpath.mkdir(parents=True, exist_ok=True)
-            except Exception as ex:
-                return '"render_output": dir %s cannot be created: %s' % (outpath, ex)
-
-        _, err = self._setting(settings, 'frames', False)
-        if err:
-            return err
-        _, err = self._setting(settings, 'render_format', False)
-        if err:
-            return err
 
         filepath, err = self._setting(settings, 'filepath', True)
         if err:
@@ -779,14 +761,6 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
                     '--python', override_filepath.as_posix(),
                 ])
 
-        if settings.get('python_expr'):
-            cmd.extend(['--python-expr', settings['python_expr']])
-        if settings.get('render_output'):
-            cmd.extend(['--render-output', settings['render_output']])
-        if settings.get('format'):
-            cmd.extend(['--render-format', settings['format']])
-        if settings.get('frames'):
-            cmd.extend(['--render-frame', settings['frames']])
         return cmd
 
     def parse_render_line(self, line: str) -> typing.Optional[dict]:
@@ -863,6 +837,43 @@ class BlenderRenderCommand(AbstractSubprocessCommand):
 
         # Not a render progress line; just log it for now.
         return 'pid=%d > %s' % (self.proc.pid, line)
+
+
+@command_executor('blender_render')
+class BlenderRenderCommand(AbstractBlenderCommand):
+
+    def validate(self, settings: Settings):
+        render_output, err = self._setting(settings, 'render_output', False)
+        if err:
+            return err
+        if render_output:
+            outpath = Path(render_output).parent
+            try:
+                outpath.mkdir(parents=True, exist_ok=True)
+            except Exception as ex:
+                return '"render_output": dir %s cannot be created: %s' % (outpath, ex)
+
+        _, err = self._setting(settings, 'frames', False)
+        if err:
+            return err
+        _, err = self._setting(settings, 'render_format', False)
+        if err:
+            return err
+
+        return super().validate(settings)
+
+    async def _build_blender_cmd(self, settings) -> typing.List[str]:
+        cmd = await super()._build_blender_cmd(settings)
+
+        if settings.get('python_expr'):
+            cmd.extend(['--python-expr', settings['python_expr']])
+        if settings.get('render_output'):
+            cmd.extend(['--render-output', settings['render_output']])
+        if settings.get('format'):
+            cmd.extend(['--render-format', settings['format']])
+        if settings.get('frames'):
+            cmd.extend(['--render-frame', settings['frames']])
+        return cmd
 
 
 @command_executor('blender_render_progressive')
@@ -995,6 +1006,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         shutil.move(str(src), str(dst))
 
 
+# TODO(Sybren): maybe subclass AbstractBlenderCommand instead?
 @command_executor('blender_render_audio')
 class BlenderRenderAudioCommand(BlenderRenderCommand):
     def validate(self, settings: Settings):
