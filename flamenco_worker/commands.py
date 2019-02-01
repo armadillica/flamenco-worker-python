@@ -1070,11 +1070,24 @@ class EXRSequenceToJPEGCommand(BlenderRenderCommand):
         if not self.pyscript.exists():
             raise FileNotFoundError(f'Resource script {self.pyscript} cannot be found')
 
-        exr_directory, err = self._setting(settings, 'exr_directory', True)
+        exr_glob, err = self._setting(settings, 'exr_glob', False)
         if err:
             return err
-        if not exr_directory:
-            return '"exr_directory" may not be empty'
+
+        # Only for backward compatibility. Should not be used.
+        exr_directory, err = self._setting(settings, 'exr_directory', False)
+        if err:
+            return err
+
+        if not exr_glob and not exr_directory:
+            return '"exr_glob" may not be empty'
+        if exr_glob and exr_directory:
+            # Normally I would say 'use either one or the other, not both', but
+            # in this case 'exr_directory' is deprecated and shouldn't be used.
+            return 'Just pass "exr_glob", do not use "exr_directory"'
+
+        if exr_directory:
+            settings['exr_glob'] = str(Path(exr_directory) / '*.exr')
 
         output_pattern, err = self._setting(settings, 'output_pattern', False,
                                             default='preview-######.jpg')
@@ -1089,7 +1102,7 @@ class EXRSequenceToJPEGCommand(BlenderRenderCommand):
             '--python-exit-code', '32',
             '--python', str(self.pyscript),
             '--',
-            '--exr-dir', settings['exr_directory'],
+            '--exr-glob', settings['exr_glob'],
             '--output-pattern', settings['output_pattern'],
         ]
 
