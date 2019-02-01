@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-FLAMENCO_VERSION="2.3-dev0"
+FLAMENCO_VERSION="2.3-dev1"
 
 cd dist
 
