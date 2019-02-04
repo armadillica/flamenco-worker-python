@@ -7,6 +7,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from unittest import mock
 
 from tests.test_runner import AbstractCommandTest
 
@@ -45,25 +46,39 @@ class CreateVideoTest(AbstractCommandTest):
         self.assertEqual(['ffmpeg'], settings['ffmpeg_cmd'],
                          'The default setting should be stored in the dict after validation')
 
-    def test_build_ffmpeg_cmd(self):
+    def test_build_ffmpeg_cmd_windows(self):
         self.cmd.validate(self.settings)
-        cliargs = self.cmd._build_ffmpeg_command(self.settings)
 
-        if platform.system() == 'Windows':
-            input_args = [
-                '-f', 'concat',
-                '-i', Path(self.settings['input_files']).absolute().with_name('ffmpeg-input.txt').as_posix(),
-            ]
-        else:
-            input_args = [
-                '-pattern_type', 'glob',
-                '-i', '/tmp/*.png',
-            ]
+        with mock.patch('platform.system') as mock_system:
+            mock_system.return_value = 'Windows'
+            cliargs = self.cmd._build_ffmpeg_command(self.settings)
 
         self.assertEqual([
             Path(sys.executable).absolute().as_posix(), '-hide_banner',
             '-r', '24',
-            *input_args,
+            '-f', 'concat',
+            '-i', Path(self.settings['input_files']).absolute().with_name('ffmpeg-input.txt').as_posix(),
+            '-c:v', 'h264',
+            '-crf', '23',
+            '-g', '18',
+            '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2',
+            '-y',
+            '-bf', '0',
+            '/tmp/merged.mkv',
+        ], cliargs)
+
+    def test_build_ffmpeg_cmd_linux(self):
+        self.cmd.validate(self.settings)
+
+        with mock.patch('platform.system') as mock_system:
+            mock_system.return_value = 'Linux'
+            cliargs = self.cmd._build_ffmpeg_command(self.settings)
+
+        self.assertEqual([
+            Path(sys.executable).absolute().as_posix(), '-hide_banner',
+            '-r', '24',
+            '-pattern_type', 'glob',
+            '-i', '/tmp/*.png',
             '-c:v', 'h264',
             '-crf', '23',
             '-g', '18',
