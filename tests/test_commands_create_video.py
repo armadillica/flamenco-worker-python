@@ -67,6 +67,7 @@ class CreateVideoTest(AbstractCommandTest):
             '-c:v', 'h264',
             '-crf', '23',
             '-g', '18',
+            '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2',
             '-y',
             '-bf', '0',
             '/tmp/merged.mkv',

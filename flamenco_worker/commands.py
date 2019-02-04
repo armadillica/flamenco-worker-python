@@ -1239,6 +1239,7 @@ class CreateVideoCommand(AbstractFFmpegCommand):
             '-c:v', self.codec_video,
             '-crf', str(self.constant_rate_factor),
             '-g', str(self.keyframe_interval),
+            '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2',
             '-y',
         ]
         if self.max_b_frames is not None:
