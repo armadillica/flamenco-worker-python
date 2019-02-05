@@ -10,6 +10,8 @@ changed functionality, fixed bugs).
   Server are no longer supported.
 - Added the `exr_sequence_to_jpeg` command. This command uses Blender to convert a sequence of
   EXR files to JPEG files. This is used in progressive rendering to get intermediary previews.
+- Added the `merge_progressive_render_sequence` for sample-merging sequences of EXR files. The
+  already-existing `merge_progressive_renders` command only performed on one frame at a time.
 
 
 ## Version 2.2.1 (2019-01-14)

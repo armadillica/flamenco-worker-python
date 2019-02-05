@@ -45,13 +45,51 @@ nodes["image2"].image = image2
 nodes["weight1"].outputs[0].default_value = %(weight1)i
 nodes["weight2"].outputs[0].default_value = %(weight2)i
 
-nodes["output"].base_path = "%(tmpdir)s"
 scene.render.resolution_x, scene.render.resolution_y = image1.size
 scene.render.tile_x, scene.render.tile_y = image1.size
-scene.render.filepath = "%(tmpdir)s/preview.jpg"
+scene.render.filepath = "%(tmpdir)s/merged0001.exr"
 
+scene.frame_start = 1
+scene.frame_end = 1
+scene.frame_set(1)
 bpy.ops.render.render(write_still=True)
 """
+
+MERGE_EXR_SEQUENCE_PYTHON = """\
+import bpy
+scene = bpy.context.scene
+nodes = scene.node_tree.nodes
+
+image1 = bpy.data.images.load("%(input1)s")
+image2 = bpy.data.images.load("%(input2)s")
+image1.source = 'SEQUENCE'
+image2.source = 'SEQUENCE'
+
+node_img1 = nodes["image1"]
+node_img2 = nodes["image2"]
+node_img1.image = image1
+node_img2.image = image2
+node_img1.frame_duration = %(frame_end)d - %(frame_start)d + 1
+node_img2.frame_duration = %(frame_end)d - %(frame_start)d + 1
+node_img1.frame_start = %(frame_start)d
+node_img2.frame_start = %(frame_start)d
+node_img1.frame_offset = %(frame_start)d - 1
+node_img2.frame_offset = %(frame_start)d - 1
+
+nodes["weight1"].outputs[0].default_value = %(weight1)i
+nodes["weight2"].outputs[0].default_value = %(weight2)i
+
+scene.render.resolution_x, scene.render.resolution_y = image1.size
+scene.render.tile_x, scene.render.tile_y = image1.size
+scene.render.filepath = "%(output)s"
+
+scene.frame_start = %(frame_start)d
+scene.frame_end = %(frame_end)d
+
+bpy.ops.render.render(animation=True)
+"""
+
+HASHES_RE = re.compile('#+')
 
 log = logging.getLogger(__name__)
 
@@ -328,6 +366,15 @@ def _numbered_path(directory: Path, fname_prefix: str, fname_suffix: str) -> Pat
             continue
         max_nr = max(max_nr, num)
     return directory / f'{fname_prefix}{max_nr + 1:03}{fname_suffix}'
+
+
+def _hashes_to_glob(path: Path) -> Path:
+    """Transform bla-#####.exr to bla-*.exr.
+
+    >>> _hashes_to_glob(Path('/path/to/bla-####.exr'))
+    Path('/path/to/bla-*.exr')
+    """
+    return path.with_name(HASHES_RE.sub('*', path.name))
 
 
 @command_executor('move_out_of_way')
@@ -918,6 +965,8 @@ class BlenderRenderProgressiveCommand(BlenderRenderCommand):
 
 @command_executor('merge_progressive_renders')
 class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
+    script_template = MERGE_EXR_PYTHON
+
     def validate(self, settings: Settings):
         blender_cmd, err = self._setting(settings, 'blender_cmd', True)
         if err:
@@ -928,20 +977,23 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         settings['blender_cmd'] = cmd
 
         input1, err = self._setting(settings, 'input1', True, str)
-        if err: return err
+        if err:
+            return err
         if '"' in input1:
             return 'Double quotes are not allowed in filenames: %r' % input1
         if not Path(input1).exists():
             return 'Input 1 %r does not exist' % input1
         input2, err = self._setting(settings, 'input2', True, str)
-        if err: return err
+        if err:
+            return err
         if '"' in input2:
             return 'Double quotes are not allowed in filenames: %r' % input2
         if not Path(input2).exists():
             return 'Input 2 %r does not exist' % input2
 
         output, err = self._setting(settings, 'output', True, str)
-        if err: return err
+        if err:
+            return err
         if '"' in output:
             return 'Double quotes are not allowed in filenames: %r' % output
 
@@ -950,24 +1002,17 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
         settings['output'] = Path(output).as_posix()
 
         _, err = self._setting(settings, 'weight1', True, int)
-        if err: return err
+        if err:
+            return err
 
         _, err = self._setting(settings, 'weight2', True, int)
-        if err: return err
+        if err:
+            return err
 
         return super().validate(settings)
 
     async def execute(self, settings: Settings):
-        blendpath = Path(__file__).parent / 'resources/merge-exr.blend'
-
-        cmd = settings['blender_cmd'][:]
-        cmd += [
-            '--factory-startup',
-            '--enable-autoexec',
-            '-noaudio',
-            '--background',
-            blendpath.as_posix(),
-        ]
+        cmd = self._base_blender_cli(settings)
 
         # set up node properties and render settings.
         output = Path(settings['output'])
@@ -979,7 +1024,7 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
             settings['tmpdir'] = tmppath.as_posix()
             cmd += [
-                '--python-expr', MERGE_EXR_PYTHON % settings
+                '--python-expr', self.script_template % settings
             ]
 
             await self.worker.register_task_update(activity='Starting Blender to merge EXR files')
@@ -987,10 +1032,22 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
             # move output files into the correct spot.
             await self.move(tmppath / 'merged0001.exr', output)
-            # await self.move(tmppath / 'preview.jpg', output.with_suffix('.jpg'))
 
         # See if this line logs the saving of a file.
         self.worker.output_produced(output)
+
+    def _base_blender_cli(self, settings):
+        blendpath = Path(__file__).parent / 'resources/merge-exr.blend'
+
+        cmd = settings['blender_cmd'] + [
+            '--factory-startup',
+            '--enable-autoexec',
+            '-noaudio',
+            '--background',
+            blendpath.as_posix(),
+            '--python-exit-code', '47',
+        ]
+        return cmd
 
     async def move(self, src: Path, dst: Path):
         """Moves a file to another location."""
@@ -1004,6 +1061,44 @@ class MergeProgressiveRendersCommand(AbstractSubprocessCommand):
 
         await self.worker.register_log('Moving %s to %s', src, dst)
         shutil.move(str(src), str(dst))
+
+
+@command_executor('merge_progressive_render_sequence')
+class MergeProgressiveRenderSequenceCommand(MergeProgressiveRendersCommand):
+    script_template = MERGE_EXR_SEQUENCE_PYTHON
+
+    def validate(self, settings: Settings):
+        err = super().validate(settings)
+        if err:
+            return err
+
+        if '##' not in settings['output']:
+            return 'Output filename should contain at least two "##" marks'
+
+        _, err = self._setting(settings, 'frame_start', True, int)
+        if err:
+            return err
+
+        _, err = self._setting(settings, 'frame_end', True, int)
+        if err:
+            return err
+
+    async def execute(self, settings: Settings):
+        cmd = self._base_blender_cli(settings)
+
+        # set up node properties and render settings.
+        output = Path(settings['output'])
+        await self._mkdir_if_not_exists(output.parent)
+
+        cmd += [
+            '--python-expr', self.script_template % settings
+        ]
+        await self.worker.register_task_update(activity='Starting Blender to merge EXR sequence')
+        await self.subprocess(cmd)
+
+        as_glob = _hashes_to_glob(output)
+        for fpath in as_glob.parent.glob(as_glob.name):
+            self.worker.output_produced(fpath)
 
 
 # TODO(Sybren): maybe subclass AbstractBlenderCommand instead?
