@@ -3,6 +3,7 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
+
 ## Version 2.3 (in development)
 
 - Changed how progressive rendering works. Nonuniform tasks are now supported. This requires
@@ -12,6 +13,8 @@ changed functionality, fixed bugs).
   EXR files to JPEG files. This is used in progressive rendering to get intermediary previews.
 - Added the `merge_progressive_render_sequence` for sample-merging sequences of EXR files. The
   already-existing `merge_progressive_renders` command only performed on one frame at a time.
+- The Worker now automatically re-registers when the Manager does not accept its credentials.
+  This makes it easier to handle erasure of the Manager's database.
 
 
 ## Version 2.2.1 (2019-01-14)

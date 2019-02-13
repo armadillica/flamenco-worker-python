@@ -1,7 +1,7 @@
 import concurrent.futures
 import unittest
 import unittest.mock
-from unittest.mock import Mock
+from unittest.mock import Mock, call
 
 import asyncio
 import requests
@@ -156,6 +156,58 @@ class WorkerStartupTest(AbstractFWorkerTest):
             auth=None,
             loop=self.asyncio_loop,
         )
+
+    # Mock merge_with_home_config() so that it doesn't overwrite actual config.
+    @unittest.mock.patch('flamenco_worker.config.merge_with_home_config')
+    def test_reregister_if_forbidden(self, mock_merge_with_home_config):
+        from tests.mock_responses import CoroMock, EmptyResponse, JsonResponse, TextResponse
+        from flamenco_worker.worker import detect_platform
+
+        self.manager.post = CoroMock(side_effect=[
+            # First sign-on fails:
+            requests.exceptions.HTTPError(
+                response=TextResponse(text='401 Unauthorized', status_code=401)),
+            # Automatic re-register response:
+            JsonResponse({'_id': '47327'}),
+            # Subsequent sign-on is OK:
+            EmptyResponse(),
+        ])
+
+        self.assertEqual(self.worker.worker_id, '1234')
+        old_worker_secret = self.worker.worker_secret
+
+        self.asyncio_loop.run_until_complete(self.worker.startup(may_retry_loop=False))
+
+        mock_merge_with_home_config.assert_called_once_with(
+            {'worker_id': '47327',
+             'worker_secret': self.worker.worker_secret})
+
+        self.assertEqual(self.worker.worker_id, '47327')
+        self.assertNotEqual(old_worker_secret, self.worker.worker_secret)
+        self.assertEqual(('47327', self.worker.worker_secret), self.worker.manager.auth)
+
+        self.manager.post.assert_has_calls([
+            call('/sign-on',
+                 json={
+                     'supported_task_types': ['sleep', 'unittest'],
+                     'nickname': 'ws-unittest',
+                 },
+                 loop=self.asyncio_loop),
+            call('/register-worker',
+                 json={'secret': self.worker.worker_secret,
+                       'platform': detect_platform(),
+                       'supported_task_types': ['sleep', 'unittest'],
+                       'nickname': 'ws-unittest'},
+                 auth=None,
+                 loop=self.asyncio_loop),
+            call('/sign-on',
+                 json={
+                     'supported_task_types': ['sleep', 'unittest'],
+                     'nickname': 'ws-unittest',
+                 },
+                 loop=self.asyncio_loop),
+        ])
+        self.tuqueue.queue.assert_not_called()
 
 
 class TestWorkerTaskExecution(AbstractFWorkerTest):

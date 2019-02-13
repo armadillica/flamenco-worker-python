@@ -55,7 +55,7 @@ class EmptyResponse:
         pass
 
 
-def CoroMock(return_value=None):
+def CoroMock(return_value=None, side_effect=...):
     """Corountine mocking object.
 
     For an example, see test_coro_mock.py.
@@ -63,8 +63,12 @@ def CoroMock(return_value=None):
     Source: http://stackoverflow.com/a/32505333/875379
 
     :param return_value: whatever you want to have set as return value.
-        This must always be set. Pass the ellipsis object ... to not set this; in that case
-        you are responsible yourself to set coromock.coro.return_value.
+    :param side_effect: whatever you want to have set as mock side-effect.
+
+    Either return_value or side_effect must always be set. Pass the ellipsis
+    object to either parameter ... to not set them. When passing ellipsis to
+    both parameters you are responsible yourself to set
+    coromock.coro.return_value or coromock.coro.side_effect.
     """
 
     import asyncio
@@ -76,5 +80,7 @@ def CoroMock(return_value=None):
 
     if return_value is not ...:
         corofunc.coro.return_value = return_value
+    if side_effect is not ...:
+        corofunc.coro.side_effect = side_effect
 
     return corofunc

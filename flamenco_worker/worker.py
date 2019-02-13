@@ -213,9 +213,9 @@ class FlamencoWorker:
                 resp = await self.manager.post(url, **post_kwargs)
                 resp.raise_for_status()
             except requests.RequestException as ex:
-                if not may_retry_loop:
-                    self._log.error('Unable to POST to manager %s: %s', url, ex)
-                    raise UnableToRegisterError()
+                if not may_retry_loop or ex.response.status_code == 401:
+                    self._log.debug('Unable to POST to manager %s: %s', url, ex)
+                    raise
 
                 self._log.warning('Unable to POST to manager %s, retrying in %i seconds: %s',
                                   url, REGISTER_AT_MANAGER_FAILED_RETRY_DELAY, ex)
@@ -223,22 +223,42 @@ class FlamencoWorker:
             else:
                 return resp
 
-    async def signon(self, *, may_retry_loop: bool):
+    async def signon(self, *, may_retry_loop: bool,
+                     autoregister_already_tried: bool=False):
         """Signs on at the manager.
 
         Only needed when we didn't just register.
         """
 
         self._log.info('Signing on at manager.')
-        await self._keep_posting_to_manager(
-            '/sign-on',
-            json={
-                'supported_task_types': self.task_types,
-                'nickname': self.hostname(),
-            },
-            may_retry_loop=may_retry_loop,
-        )
-        self._log.info('Manager accepted sign-on.')
+        try:
+            await self._keep_posting_to_manager(
+                '/sign-on',
+                json={
+                    'supported_task_types': self.task_types,
+                    'nickname': self.hostname(),
+                },
+                may_retry_loop=may_retry_loop,
+            )
+        except requests.exceptions.HTTPError as ex:
+            if ex.response.status_code != 401:
+                self._log.error('Unable to sign on at Manager: %s', ex)
+                raise UnableToRegisterError()
+
+            if autoregister_already_tried:
+                self._log.error('Manager did not accept our credentials, and re-registration '
+                                'was already attempted. Giving up.')
+                raise UnableToRegisterError()
+
+            self._log.warning('Manager did not accept our credentials, going to re-register')
+            await self.register_at_manager(may_retry_loop=may_retry_loop)
+
+            self._log.warning('Re-registration was fine, going to re-try sign-on')
+            await self.signon(may_retry_loop=may_retry_loop, autoregister_already_tried=True)
+        else:
+            # Expected flow: no exception, manager accepts credentials.
+            self._log.info('Manager accepted sign-on.')
+
 
     async def register_at_manager(self, *, may_retry_loop: bool):
         self._log.info('Registering at manager')
@@ -261,6 +281,7 @@ class FlamencoWorker:
         result = resp.json()
         self._log.info('Response: %s', result)
         self.worker_id = result['_id']
+        self.manager.auth = (self.worker_id, self.worker_secret)
 
         self.write_registration_info()
 
