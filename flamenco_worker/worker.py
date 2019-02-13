@@ -266,17 +266,20 @@ class FlamencoWorker:
         self.worker_secret = generate_secret()
         platform = detect_platform()
 
-        resp = await self._keep_posting_to_manager(
-            '/register-worker',
-            json={
-                'secret': self.worker_secret,
-                'platform': platform,
-                'supported_task_types': self.task_types,
-                'nickname': self.hostname(),
-            },
-            use_auth=False,  # explicitly do not use authentication
-            may_retry_loop=may_retry_loop,
-        )
+        try:
+            resp = await self._keep_posting_to_manager(
+                '/register-worker',
+                json={
+                    'secret': self.worker_secret,
+                    'platform': platform,
+                    'supported_task_types': self.task_types,
+                    'nickname': self.hostname(),
+                },
+                use_auth=False,  # explicitly do not use authentication
+                may_retry_loop=may_retry_loop,
+            )
+        except requests.exceptions.HTTPError:
+            raise UnableToRegisterError()
 
         result = resp.json()
         self._log.info('Response: %s', result)
