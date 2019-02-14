@@ -32,17 +32,6 @@ class BlenderRenderTest(AbstractCommandTest):
             'hunds': '17',
         })
 
-    def test_is_sync_line(self):
-        # Cycles
-        line = 'Fra:116 Mem:2348.62M (0.00M, Peak 2562.33M) | Time:02:31.54 | Mem:0.00M, ' \
-               'Peak:0.00M | 02_005_A.lighting, R-final ' \
-               '| Synchronizing object | GEO-frost_particle.007'
-        self.assertTrue(self.cmd._is_sync_line(line))
-
-        # Non-cycles (render engine set to Cycles without Cycles support in Blender).
-        line = 'Fra:1 Mem:67.05M (0.00M, Peak 98.78M) | Time:00:00.17 | Syncing Suzanne.003'
-        self.assertTrue(self.cmd._is_sync_line(line))
-
     def test_parse_render_line(self):
         line = 'Fra:10 Mem:17.52M (0.00M, Peak 33.47M) | Time:00:04.17 | Remaining:00:00.87 | ' \
                'Mem:1.42M, Peak:1.42M | Scene, RenderLayer | Path Tracing Tile 110/135'
