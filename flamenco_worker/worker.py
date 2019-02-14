@@ -213,7 +213,10 @@ class FlamencoWorker:
                 resp = await self.manager.post(url, **post_kwargs)
                 resp.raise_for_status()
             except requests.RequestException as ex:
-                if not may_retry_loop or (ex.response and ex.response.status_code == 401):
+                # Somehow 'ex.response is not None' is really necessary; just 'ex.response'
+                # is not working as expected.
+                is_unauthorized = ex.response is not None and ex.response.status_code == 401
+                if not may_retry_loop or is_unauthorized:
                     self._log.debug('Unable to POST to manager %s: %s', url, ex)
                     raise
 
