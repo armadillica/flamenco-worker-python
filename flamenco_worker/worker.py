@@ -213,7 +213,7 @@ class FlamencoWorker:
                 resp = await self.manager.post(url, **post_kwargs)
                 resp.raise_for_status()
             except requests.RequestException as ex:
-                if not may_retry_loop or ex.response.status_code == 401:
+                if not may_retry_loop or (ex.response and ex.response.status_code == 401):
                     self._log.debug('Unable to POST to manager %s: %s', url, ex)
                     raise
 
