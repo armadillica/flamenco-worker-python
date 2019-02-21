@@ -29,6 +29,9 @@ class MayIRun:
                 await asyncio.sleep(self.poll_interval.total_seconds())
         except asyncio.CancelledError:
             self._log.warning('Shutting down.')
+        except Exception:
+            self._log.exception('May-I-Run service crashed!')
+            raise
 
     async def one_iteration(self):
         task_id = self.worker.active_task_id
