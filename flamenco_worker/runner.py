@@ -1,6 +1,10 @@
 """Task runner."""
 
 import asyncio
+import collections
+import datetime
+import json
+import typing
 
 import attr
 
@@ -20,10 +24,18 @@ class TaskRunner:
 
     def __attrs_post_init__(self):
         self.current_command = None
+        self.aggr_timing_info: typing.MutableMapping[str, float] = collections.OrderedDict()
 
     async def execute(self, task: dict, fworker: worker.FlamencoWorker) -> bool:
         """Executes a task, returns True iff the entire task was run succesfully."""
 
+        self.aggr_timing_info = collections.OrderedDict()
+        try:
+            return await self._execute(task, fworker)
+        finally:
+            await self.log_recorded_timings(fworker)
+
+    async def _execute(self, task: dict, fworker: worker.FlamencoWorker) -> bool:
         from .commands import command_handlers
 
         task_id = task['_id']
@@ -57,6 +69,11 @@ class TaskRunner:
             self.current_command = cmd
             success = await cmd.run(cmd_settings)
 
+            # Add the timings of this command to the aggregated timing info.
+            for timing_key, timing_value in cmd.timing.items():
+                duration_so_far = self.aggr_timing_info.get(timing_key, 0.0)
+                self.aggr_timing_info[timing_key] = duration_so_far + timing_value
+
             if not success:
                 self._log.warning('Command %i of task %s was not succesful, aborting task.',
                                   cmd_idx, task_id)
@@ -64,6 +81,7 @@ class TaskRunner:
 
         self._log.info('Task %s completed succesfully.', task_id)
         self.current_command = None
+
         return True
 
     async def abort_current_task(self):
@@ -78,3 +96,19 @@ class TaskRunner:
 
         self._log.warning('abort_current_task: Aborting command %s', self.current_command)
         await self.current_command.abort()
+
+    async def log_recorded_timings(self, fworker: worker.FlamencoWorker) -> None:
+        """Send the timing to the task log."""
+
+        timing_info = self.aggr_timing_info
+        if not timing_info:
+            return
+
+        self._log.info('Task Timing info: %s', json.dumps(timing_info))
+
+        log_lines = [f'Aggregated Task Timing Information:']
+        for name, duration in timing_info.items():
+            delta = datetime.timedelta(seconds=duration)
+            log_lines.append(f'    - {name}: {delta}')
+
+        await fworker.register_log('\n'.join(log_lines))

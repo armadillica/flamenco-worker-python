@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import shlex
 import sys
@@ -95,12 +96,14 @@ class ExecCommandTest(AbstractCommandTest):
         pid = cmd.proc.pid
 
         # Check that both lines have been reported.
+        total_time = datetime.timedelta(seconds=cmd.timing['total'])
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
             call('Executing %s',
                  '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % executable),
             call('pid=%d > hello, this is two lines' % pid),
             call('pid=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
+            call(f'exec: command timing information:\n    - total: {total_time}'),
             call('exec: Finished'),
         ])
 
