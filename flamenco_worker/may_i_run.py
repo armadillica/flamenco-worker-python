@@ -2,6 +2,7 @@
 
 import asyncio
 import datetime
+import typing
 
 import attr
 
@@ -40,17 +41,30 @@ class MayIRun:
             # self._log.debug('No current task')
             return
 
-        if await self.may_i_run(task_id):
+        allowed = await self.may_i_run(task_id)
+        if allowed is None:
+            # Something has been logged already.
+            return
+
+        if allowed:
             self._log.debug('Current task %s may run', task_id)
             return
 
         self._log.warning('We have to stop task %s', task_id)
         await self.worker.stop_current_task(task_id)
 
-    async def may_i_run(self, task_id: str) -> bool:
-        """Asks the Manager whether we are still allowed to run the given task."""
+    async def may_i_run(self, task_id: str) -> typing.Optional[bool]:
+        """Asks the Manager whether we are still allowed to run the given task.
 
-        resp = await self.manager.get('/may-i-run/%s' % task_id, loop=self.loop)
+        Returns None if the Manager cannot be reached and thus no answer can be obtained.
+        """
+
+        try:
+            resp = await self.manager.get('/may-i-run/%s' % task_id, loop=self.loop)
+        except Exception as ex:
+            self._log.warning('Unable to query may-i-run endpoint: %s', ex)
+            return None
+
         may_keep_running = documents.MayKeepRunningResponse(**resp.json())
 
         if not may_keep_running.may_keep_running:
