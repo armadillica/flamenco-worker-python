@@ -620,7 +620,9 @@ class FlamencoWorker:
         if self.task_is_silently_aborting:
             self._log.info('push_to_manager: task is silently aborting, will only push logs')
         else:
-            payload = attr.asdict(self.last_task_activity)
+            payload = attr.asdict(self.last_task_activity,
+                                  # Prevent sending an empty metrics dict:
+                                  filter=lambda attr, value: attr.name != 'metrics' or value)
             if self.current_task_status:
                 payload['task_status'] = self.current_task_status
 
@@ -662,6 +664,13 @@ class FlamencoWorker:
         # Update the current activity
         for key, value in kwargs.items():
             setattr(self.last_task_activity, key, value)
+
+        # If we have timing information about the current task, include that too.
+        timing_metrics = self.trunner.aggr_timing_info
+        if timing_metrics:
+            self.last_task_activity.metrics['timing'] = timing_metrics.copy()
+        else:
+            self.last_task_activity.metrics.pop('timing', None)
 
         if task_status is None:
             task_status_changed = False

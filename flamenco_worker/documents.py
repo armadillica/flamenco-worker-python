@@ -3,14 +3,15 @@
 import attr
 
 
-@attr.s
+@attr.s(auto_attribs=True)
 class Activity:
     """Activity on a task."""
 
-    activity = attr.ib(default='', validator=attr.validators.instance_of(str))
-    current_command_idx = attr.ib(default=0, validator=attr.validators.instance_of(int))
-    task_progress_percentage = attr.ib(default=0, validator=attr.validators.instance_of(int))
-    command_progress_percentage = attr.ib(default=0, validator=attr.validators.instance_of(int))
+    activity: str = ''
+    current_command_idx: int = 0
+    task_progress_percentage: int = 0
+    command_progress_percentage: int = 0
+    metrics: dict = {}
 
 
 @attr.s

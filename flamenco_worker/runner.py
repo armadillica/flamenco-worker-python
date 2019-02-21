@@ -24,12 +24,12 @@ class TaskRunner:
 
     def __attrs_post_init__(self):
         self.current_command = None
-        self.aggr_timing_info: typing.MutableMapping[str, float] = collections.OrderedDict()
+        self._aggr_timing_info: typing.MutableMapping[str, float] = collections.OrderedDict()
 
     async def execute(self, task: dict, fworker: worker.FlamencoWorker) -> bool:
         """Executes a task, returns True iff the entire task was run succesfully."""
 
-        self.aggr_timing_info = collections.OrderedDict()
+        self._aggr_timing_info = collections.OrderedDict()
         try:
             return await self._execute(task, fworker)
         finally:
@@ -71,8 +71,8 @@ class TaskRunner:
 
             # Add the timings of this command to the aggregated timing info.
             for timing_key, timing_value in cmd.timing.items():
-                duration_so_far = self.aggr_timing_info.get(timing_key, 0.0)
-                self.aggr_timing_info[timing_key] = duration_so_far + timing_value
+                duration_so_far = self._aggr_timing_info.get(timing_key, 0.0)
+                self._aggr_timing_info[timing_key] = duration_so_far + timing_value
 
             if not success:
                 self._log.warning('Command %i of task %s was not succesful, aborting task.',
@@ -100,7 +100,7 @@ class TaskRunner:
     async def log_recorded_timings(self, fworker: worker.FlamencoWorker) -> None:
         """Send the timing to the task log."""
 
-        timing_info = self.aggr_timing_info
+        timing_info = self._aggr_timing_info
         if not timing_info:
             return
 
@@ -112,3 +112,7 @@ class TaskRunner:
             log_lines.append(f'    - {name}: {delta}')
 
         await fworker.register_log('\n'.join(log_lines))
+
+    @property
+    def aggr_timing_info(self) -> typing.Mapping[str, float]:
+        return self._aggr_timing_info

@@ -26,6 +26,8 @@ class AbstractFWorkerTest(AbstractWorkerTest):
         self.manager.post = CoroMock()
 
         self.trunner = Mock(spec=TaskRunner)
+        self.trunner.aggr_timing_info = {}
+
         self.tuqueue = Mock(spec=TaskUpdateQueue)
         self.tuqueue.flush_and_report = CoroMock()
         self.tuqueue.queue_size.return_value = 0
