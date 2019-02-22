@@ -3,9 +3,8 @@
 import abc
 import asyncio
 import asyncio.subprocess
-import collections
-import contextlib
 import datetime
+import json
 import logging
 import pathlib
 import platform
@@ -22,7 +21,8 @@ from pathlib import Path
 import attr
 import psutil
 
-from . import worker
+from . import json_encoder, worker
+from .timing import Timing
 
 command_handlers = {}  # type: typing.Mapping[str, typing.Type['AbstractCommand']]
 
@@ -136,11 +136,7 @@ class AbstractCommand(metaclass=abc.ABCMeta):
                    validator=attr.validators.instance_of(logging.Logger))
 
     # Mapping from 'thing' name to how long it took to do that 'thing' (in seconds).
-    timing: typing.MutableMapping[str, float] = attr.ib(
-        init=False, default=collections.OrderedDict())
-
-    _last_timing_event = ''
-    _last_timing_checkpoint = 0.0
+    timing: Timing = attr.ib(init=False, factory=Timing)
 
     def __attrs_post_init__(self):
         self.identifier = '%s.(task_id=%s, command_idx=%s)' % (
@@ -148,31 +144,6 @@ class AbstractCommand(metaclass=abc.ABCMeta):
             self.task_id,
             self.command_idx)
         self._log = log.getChild(self.identifier)
-
-    @contextlib.contextmanager
-    def record_duration(self, name: str):
-        """Records the duration of the context in self._timing[name]."""
-        start_time = time.time()
-        try:
-            yield
-        finally:
-            duration = time.time() - start_time
-            assert name not in self.timing, \
-                f'{name} not expected in {self.timing}'
-
-            self.timing[name] = duration
-
-    def _timing_checkpoint(self, checkpoint_name: str):
-        now = time.time()
-
-        if self._last_timing_event:
-            duration = now - self._last_timing_checkpoint
-            assert self._last_timing_event not in self.timing, \
-                f'{self._last_timing_event} not expected in {self.timing}'
-            self.timing[self._last_timing_event] = duration
-
-        self._last_timing_event = checkpoint_name
-        self._last_timing_checkpoint = now
 
     async def run(self, settings: Settings) -> bool:
         """Runs the command, parsing output and sending it back to the worker.
@@ -199,7 +170,7 @@ class AbstractCommand(metaclass=abc.ABCMeta):
 
         self.timing.clear()
         try:
-            with self.record_duration('total'):
+            with self.timing.record_duration('total'):
                 try:
                     await self.execute(settings)
                 except CommandExecutionError as ex:
@@ -232,12 +203,10 @@ class AbstractCommand(metaclass=abc.ABCMeta):
         if not self.timing:
             return
 
-        log_lines = [f'{self.command_name}: command timing information:']
-        for name, duration in self.timing.items():
-            delta = datetime.timedelta(seconds=duration)
-            log_lines.append(f'    - {name}: {delta}')
-
-        await self.worker.register_log('\n'.join(log_lines))
+        as_json = json.dumps(self.timing, cls=json_encoder.JSONEncoder)
+        log_line = f'command timing information: {as_json}'
+        self._log.info(log_line)
+        await self.worker.register_log(f'{self.command_name}: {log_line}')
 
     async def abort(self):
         """Aborts the command. This may or may not be actually possible.
@@ -821,12 +790,11 @@ class AbstractBlenderCommand(AbstractSubprocessCommand):
 
         await self.worker.register_task_update(activity='Starting Blender')
 
-        self._timing_checkpoint(self._TIMING_STARTING_BLENDER)
+        self.timing.checkpoint(self._TIMING_STARTING_BLENDER)
         try:
             await self.subprocess(cmd)
         finally:
-            # This writes the final duration to self._timing
-            self._timing_checkpoint('')
+            self.timing.checkpoint('')
 
     async def _build_blender_cmd(self, settings: Settings) -> typing.List[str]:
         filepath = settings['filepath']
@@ -902,14 +870,15 @@ class AbstractBlenderCommand(AbstractSubprocessCommand):
         if 'Warning: Unable to open' in line or self.re_path_not_found.search(line):
             await self.worker.register_task_update(activity=line)
 
-        if self._last_timing_event == self._TIMING_STARTING_BLENDER and (
+        last_timing_name = self.timing.last_name
+        if last_timing_name == self._TIMING_STARTING_BLENDER and (
                 line.startswith('Read blend:') or line.startswith('Info: Read library:')):
-            self._timing_checkpoint(self._TIMING_LOADING_BLENDFILE)
+            self.timing.checkpoint(self._TIMING_LOADING_BLENDFILE)
 
         render_info = self.parse_render_line(line)
 
-        if render_info and self._last_timing_event != self._TIMING_RENDERING:
-            self._timing_checkpoint(self._TIMING_RENDERING)
+        if render_info and last_timing_name != self._TIMING_RENDERING:
+            self.timing.checkpoint(self._TIMING_RENDERING)
 
         now = time.time()
         # Only update render info every this many seconds, and not for every line Blender produces.

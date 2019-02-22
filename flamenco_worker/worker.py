@@ -668,7 +668,7 @@ class FlamencoWorker:
         # If we have timing information about the current task, include that too.
         timing_metrics = self.trunner.aggr_timing_info
         if timing_metrics:
-            self.last_task_activity.metrics['timing'] = timing_metrics.copy()
+            self.last_task_activity.metrics['timing'] = timing_metrics.to_json_compat()
         else:
             self.last_task_activity.metrics.pop('timing', None)
 

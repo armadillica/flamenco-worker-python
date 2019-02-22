@@ -1,15 +1,13 @@
 """Task runner."""
 
 import asyncio
-import collections
-import datetime
 import json
 import typing
 
 import attr
 
 from . import attrs_extra
-from . import worker
+from . import json_encoder, timing, worker
 
 
 @attr.s
@@ -24,12 +22,12 @@ class TaskRunner:
 
     def __attrs_post_init__(self):
         self.current_command = None
-        self._aggr_timing_info: typing.MutableMapping[str, float] = collections.OrderedDict()
+        self._aggr_timing_info = timing.Timing()
 
     async def execute(self, task: dict, fworker: worker.FlamencoWorker) -> bool:
         """Executes a task, returns True iff the entire task was run succesfully."""
 
-        self._aggr_timing_info = collections.OrderedDict()
+        self._aggr_timing_info = timing.Timing()
         try:
             return await self._execute(task, fworker)
         finally:
@@ -70,9 +68,7 @@ class TaskRunner:
             success = await cmd.run(cmd_settings)
 
             # Add the timings of this command to the aggregated timing info.
-            for timing_key, timing_value in cmd.timing.items():
-                duration_so_far = self._aggr_timing_info.get(timing_key, 0.0)
-                self._aggr_timing_info[timing_key] = duration_so_far + timing_value
+            self._aggr_timing_info += cmd.timing
 
             if not success:
                 self._log.warning('Command %i of task %s was not succesful, aborting task.',
@@ -104,15 +100,11 @@ class TaskRunner:
         if not timing_info:
             return
 
-        self._log.info('Task Timing info: %s', json.dumps(timing_info))
-
-        log_lines = [f'Aggregated Task Timing Information:']
-        for name, duration in timing_info.items():
-            delta = datetime.timedelta(seconds=duration)
-            log_lines.append(f'    - {name}: {delta}')
-
-        await fworker.register_log('\n'.join(log_lines))
+        as_json = json.dumps(timing_info, cls=json_encoder.JSONEncoder)
+        log_line = f'Aggregated task timing info: {as_json}'
+        self._log.info(log_line)
+        await fworker.register_log(log_line)
 
     @property
-    def aggr_timing_info(self) -> typing.Mapping[str, float]:
+    def aggr_timing_info(self) -> timing.Timing:
         return self._aggr_timing_info
