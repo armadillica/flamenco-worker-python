@@ -108,6 +108,40 @@ class BlenderRenderTest(AbstractCommandTest):
                 stderr=subprocess.STDOUT,
             )
 
+    def test_cli_openexr(self):
+        from tests.mock_responses import CoroMock
+
+        filepath = Path(__file__).parent.as_posix()
+        settings = {
+            # Point blender_cmd to this file so that we're sure it exists.
+            'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
+            'chunk_size': 100,
+            'frames': '1..2',
+            'format': 'OPEN_EXR',
+            'filepath': filepath,
+        }
+
+        cse = CoroMock(...)
+        cse.coro.return_value.wait = CoroMock(return_value=0)
+        cse.coro.return_value.pid = 47
+        with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse:
+            self.loop.run_until_complete(self.cmd.run(settings))
+
+            mock_cse.assert_called_once_with(
+                self.thisfile,
+                '--with',
+                '--cli=args for CLI',
+                '--enable-autoexec',
+                '-noaudio',
+                '--background',
+                filepath,
+                '--render-format', 'EXR',  # see https://developer.blender.org/D4502
+                '--render-frame', '1..2',
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+
     def test_python_expr(self):
         from tests.mock_responses import CoroMock
 

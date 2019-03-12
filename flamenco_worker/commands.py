@@ -805,6 +805,20 @@ class AbstractBlenderCommand(AbstractSubprocessCommand):
 
         self._last_activity_time = 0.0
 
+    def _format_dna_to_cli(self, format_for_dna: str) -> str:
+        """Converts the DNA image format enum to a CLI -F argument for Blender.
+
+        The DNA enum value is generally the same as what would be passed on the
+        command line, except the EXR formats.
+        """
+
+        # See https://developer.blender.org/D4502
+        dna_to_cli = {
+            'OPEN_EXR': 'EXR',
+            'OPEN_EXR_MULTILAYER': 'MULTILAYER',
+        }
+        return dna_to_cli.get(format_for_dna, format_for_dna)
+
     def validate(self, settings: Settings):
         blender_cmd, err = self._setting(settings, 'blender_cmd', True)
         if err:
@@ -979,7 +993,7 @@ class BlenderRenderCommand(AbstractBlenderCommand):
         if settings.get('render_output'):
             cmd.extend(['--render-output', settings['render_output']])
         if settings.get('format'):
-            cmd.extend(['--render-format', settings['format']])
+            cmd.extend(['--render-format', self._format_dna_to_cli(settings['format'])])
         if settings.get('frames'):
             cmd.extend(['--render-frame', settings['frames']])
         return cmd
