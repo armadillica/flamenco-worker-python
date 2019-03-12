@@ -1358,6 +1358,7 @@ class CreateVideoCommand(AbstractFFmpegCommand):
     """
 
     codec_video = 'h264'
+    pix_fmt = 'yuv420p'
 
     # Select some settings that are useful for scrubbing through the video.
     constant_rate_factor = 23
@@ -1411,6 +1412,7 @@ class CreateVideoCommand(AbstractFFmpegCommand):
             '-crf', str(self.constant_rate_factor),
             '-g', str(self.keyframe_interval),
             '-vf', 'pad=ceil(iw/2)*2:ceil(ih/2)*2',
+            '-pix_fmt', self.pix_fmt,
             '-y',
         ]
         if self.max_b_frames is not None:

@@ -15,6 +15,7 @@ changed functionality, fixed bugs).
   already-existing `merge_progressive_renders` command only performed on one frame at a time.
 - The Worker now automatically re-registers when the Manager does not accept its credentials.
   This makes it easier to handle erasure of the Manager's database.
+- Explicitly use YUV420p pixel format when creating videos from images using FFmpeg.
 
 
 ## Version 2.2.1 (2019-01-14)
