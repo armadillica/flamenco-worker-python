@@ -11,6 +11,7 @@ import platform
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import tempfile
 
@@ -94,6 +95,18 @@ bpy.ops.render.render(animation=True)
 HASHES_RE = re.compile('#+')
 
 log = logging.getLogger(__name__)
+
+
+def signal_name(signum: int) -> str:
+    """Determine the signal name for this number.
+
+    Gracefully handles unknown signal numbers.
+    """
+
+    try:
+        return signal.Signals(signum).name
+    except ValueError:
+        return f'-unknown signal {signum}-'
 
 
 def command_executor(cmdname):
@@ -596,8 +609,7 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
 
     async def subprocess(self, args: typing.List[str]):
         cmd_to_log = ' '.join(shlex.quote(s) for s in args)
-        self._log.info('Executing %s', cmd_to_log)
-        await self.worker.register_log('Executing %s', cmd_to_log)
+        await self.log(logging.INFO, f'Executing {cmd_to_log}')
 
         line_logger = log.getChild(f'line.{self.identifier}')
 
@@ -616,8 +628,10 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
                 with pid_path.open('x') as pidfile:
                     pidfile.write(str(pid))
             except FileExistsError:
-                self._log.error('PID file %r already exists, killing just-spawned process pid=%d',
-                                pid_path, pid)
+                pidfile_contents = pid_path.read_text()
+                await self.log(logging.ERROR,
+                               f'PID file {pid_path} already exists (has pid={pidfile_contents}), '
+                               f' killing just-spawned process pid={pid}')
                 await self.abort()
                 raise
         try:
@@ -649,12 +663,16 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
                     await self.worker.register_log(processed_line)
 
             retcode = await self.proc.wait()
-            self._log.info('Command %s (pid=%d) stopped with status code %s',
-                           cmd_to_log, pid, retcode)
+            await self._log_process_termination(pid, retcode, f'Subprocess {cmd_to_log}: ')
 
-            if retcode:
+            if retcode > 0:
                 raise CommandExecutionError('Command %s (pid=%d) failed with status %s' %
                                             (cmd_to_log, pid, retcode))
+            elif retcode < 0:
+                signame = signal_name(-retcode)
+                raise CommandExecutionError(f'Subprocess {cmd_to_log} (pid={pid}) terminated by '
+                                            f'signal {signame} ({-retcode})')
+
         except asyncio.CancelledError:
             self._log.info('asyncio task got canceled, killing subprocess pid=%d', pid)
             await self.abort()
@@ -675,8 +693,7 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
             self._log.debug("No process to kill. That's ok.")
             return
 
-        self._log.info('Terminating subprocess pid=%d', self.proc.pid)
-
+        await self.log(logging.WARNING, f'TERMinating subprocess pid={self.proc.pid}')
         try:
             self.proc.terminate()
         except ProcessLookupError:
@@ -694,25 +711,51 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
         except asyncio.TimeoutError:
             pass
         else:
-            self._log.info('The process pid=%d aborted with status code %s', self.proc.pid, retval)
+            await self._log_process_termination(self.proc.pid, retval)
             return
 
-        self._log.warning('The process pid=%d did not stop in %d seconds, going to kill it',
-                          self.proc.pid, timeout)
+        await self.log(logging.WARNING,
+                       f'Process pid={self.proc.pid} did not stop in '
+                       f'{timeout} seconds, going to KILL it')
         try:
             self.proc.kill()
         except ProcessLookupError:
-            self._log.debug("The process pid=%d was already stopped, aborting is impossible. "
+            self._log.debug("Process pid=%d was already stopped, aborting is impossible. "
                             "That's ok.", self.proc.pid)
             return
         except AttributeError:
             # This can happen in some race conditions, it's fine.
-            self._log.debug("The process pid=%d was not yet started, aborting is impossible. "
+            self._log.debug("Process pid=%d was not yet started, aborting is impossible. "
                             "That's ok.", self.proc.pid)
             return
 
-        retval = await self.proc.wait()
-        self._log.info('The process %d aborted with status code %s', self.proc.pid, retval)
+        await self._log_process_termination(self.proc.pid, await self.proc.wait())
+
+    async def log(self, level: int, msg: str):
+        """Log to both the Python log and the Task log.
+
+        The level is only used for the Python log.
+        """
+
+        self._log.log(level, msg)
+        await self.worker.register_log(msg)
+
+    async def _log_process_termination(self, pid: int, exitcode: int, msg_prefix=''):
+        """Log the fact that the process terminated.
+
+        When exitcode is negative, also logs the name of the corresponding signal.
+        """
+
+        if exitcode >= 0:
+            await self.log(logging.INFO,
+                           f'{msg_prefix}Process pid={pid} exited with status code {exitcode}')
+            return
+
+        signum = -exitcode
+        signame = signal_name(signum)
+        await self.log(logging.WARNING,
+                       f'{msg_prefix}Process pid={pid} terminated '
+                       f'due to signal {signame} ({signum})')
 
 
 @command_executor('exec')

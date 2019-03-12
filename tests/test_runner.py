@@ -99,10 +99,10 @@ class ExecCommandTest(AbstractCommandTest):
         total_time = cmd.timing['total']
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call('Executing %s',
-                 '%s -c \'print("hello, this is two lines\\nYes, really.")\'' % executable),
+            call(f'Executing {settings["cmd"]}'),
             call('pid=%d > hello, this is two lines' % pid),
             call('pid=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
+            call(f'Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 0'),
             call(f'exec: command timing information: {{"total": {total_time}}}'),
             call('exec: Finished'),
         ])
@@ -131,13 +131,14 @@ class ExecCommandTest(AbstractCommandTest):
 
         # Check that the error has been reported.
         pid = cmd.proc.pid
-        decode_err = "exec.(task_id=12345, command_idx=0): Error executing: Command pid=%d " \
-                     "produced non-UTF8 output, aborting: 'utf-8' codec can't decode byte 0x80 "\
-                     "in position 0: invalid start byte" % pid
+        decode_err = f"exec.(task_id=12345, command_idx=0): Error executing: Command pid={pid} " \
+                     f"produced non-UTF8 output, aborting: 'utf-8' codec can't decode byte 0x80 "\
+                     f"in position 0: invalid start byte"
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call('Executing %s',
-                 '%s -c \'import sys; sys.stdout.buffer.write(bytes((0x80, 0x80, 0x80)))\'' % executable),
+            call(f'Executing {executable} '
+                 f'-c \'import sys; sys.stdout.buffer.write(bytes((0x80, 0x80, 0x80)))\''),
+            call(f'TERMinating subprocess pid={pid}'),
             call(decode_err),
         ])
 
@@ -161,13 +162,15 @@ class ExecCommandTest(AbstractCommandTest):
         pid = cmd.proc.pid
 
         # Check that the execution error has been reported.
+        total_time = cmd.timing['total']
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call('Executing %s',
-                 '%s -c \'raise SystemExit("FAIL")\'' % executable),
-            call('pid=%d > FAIL' % pid),  # note the logged line doesn't end in a newline
-            call('exec.(task_id=12345, command_idx=0): Error executing: '
-                 'Command %s (pid=%d) failed with status 1' % (settings['cmd'], pid))
+            call(f'Executing {settings["cmd"]}'),
+            call(f'pid={pid} > FAIL'),  # note the logged line doesn't end in a newline
+            call(f'Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 1'),
+            call(f'exec.(task_id=12345, command_idx=0): Error executing: '
+                 f'Command {settings["cmd"]} (pid={pid}) failed with status 1'),
+            call(f'exec: command timing information: {{"total": {total_time}}}'),
         ])
 
         # The update should NOT contain a new task status -- that is left to the Worker.
