@@ -1361,7 +1361,7 @@ class CreateVideoCommand(AbstractFFmpegCommand):
     pix_fmt = 'yuv420p'
 
     # Select some settings that are useful for scrubbing through the video.
-    constant_rate_factor = 23
+    constant_rate_factor = 20
     keyframe_interval = 18  # GOP size
     max_b_frames: typing.Optional[int] = 0
 
