@@ -103,6 +103,7 @@ if __name__ == '__main__':
         install_requires=[
             'attrs >=16.3.0',
             'requests>=2.12.4',
+            'pyjwt>=1.7.1',
         ],
         entry_points={'console_scripts': [
             'flamenco-worker = flamenco_worker.cli:main',

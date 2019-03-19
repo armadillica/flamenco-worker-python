@@ -14,6 +14,7 @@ import requests.exceptions
 
 from . import attrs_extra
 from . import documents
+from . import jwtauth
 from . import upstream
 from . import upstream_update_queue
 
@@ -78,6 +79,9 @@ class FlamencoWorker:
 
     state = attr.ib(default=WorkerState.STARTING,
                     validator=attr.validators.instance_of(WorkerState))
+
+    worker_registration_secret = attr.ib(validator=attr.validators.instance_of(str),
+                                         default='')
 
     # Indicates the state in which the Worker should start
     initial_state = attr.ib(validator=attr.validators.instance_of(str), default='awake')
@@ -199,14 +203,19 @@ class FlamencoWorker:
     def identifier(self) -> str:
         return f'{self.worker_id} ({self.nickname})'
 
-    async def _keep_posting_to_manager(self, url: str, json: dict, *, use_auth=True,
-                                       may_retry_loop: bool) -> requests.Response:
+    async def _keep_posting_to_manager(self, url: str, json: dict, *,
+                                       use_auth=True,
+                                       may_retry_loop: bool,
+                                       extra_headers: typing.Optional[dict] = None,
+                                       ) -> requests.Response:
         post_kwargs = {
             'json': json,
             'loop': self.loop,
         }
         if not use_auth:
             post_kwargs['auth'] = None
+        if extra_headers:
+            post_kwargs['headers'] = extra_headers
 
         while True:
             try:
@@ -215,19 +224,32 @@ class FlamencoWorker:
             except requests.RequestException as ex:
                 # Somehow 'ex.response is not None' is really necessary; just 'ex.response'
                 # is not working as expected.
-                is_unauthorized = ex.response is not None and ex.response.status_code == 401
+                has_response = ex.response is not None
+                is_unauthorized = has_response and ex.response.status_code == 401
                 if not may_retry_loop or is_unauthorized:
-                    self._log.debug('Unable to POST to manager %s: %s', url, ex)
+                    self._log.debug('Unable to POST to manager %s: %s. %s.', url, ex)
                     raise
 
-                self._log.warning('Unable to POST to manager %s, retrying in %i seconds: %s',
-                                  url, REGISTER_AT_MANAGER_FAILED_RETRY_DELAY, ex)
+                if has_response:
+                    body = f'; {ex.response.text.strip()}'
+                else:
+                    body = ''
+
+                if has_response and ex.response.status_code == 403:
+                    # This needs to stop the Worker completely, as the configuration
+                    # is wrong. By letting systemd restart the worker a new config file
+                    # is read, and maybe that now contains the correct secret.
+                    self._log.error('Unable to POST to manager %s because we do not have '
+                                    'the correct worker_registration_secret%s', url, body)
+                    raise
+                self._log.warning('Unable to POST to manager %s, retrying in %i seconds: %s%s',
+                                  url, REGISTER_AT_MANAGER_FAILED_RETRY_DELAY, ex, body)
                 await asyncio.sleep(REGISTER_AT_MANAGER_FAILED_RETRY_DELAY)
             else:
                 return resp
 
     async def signon(self, *, may_retry_loop: bool,
-                     autoregister_already_tried: bool=False):
+                     autoregister_already_tried: bool = False):
         """Signs on at the manager.
 
         Only needed when we didn't just register.
@@ -262,12 +284,19 @@ class FlamencoWorker:
             # Expected flow: no exception, manager accepts credentials.
             self._log.info('Manager accepted sign-on.')
 
-
     async def register_at_manager(self, *, may_retry_loop: bool):
         self._log.info('Registering at manager')
 
         self.worker_secret = generate_secret()
         platform = detect_platform()
+
+        if self.worker_registration_secret:
+            reg_token = jwtauth.new_registration_token(self.worker_registration_secret)
+            headers = {
+                'Authorization': f'Bearer {reg_token}'
+            }
+        else:
+            headers = {}
 
         try:
             resp = await self._keep_posting_to_manager(
@@ -278,8 +307,9 @@ class FlamencoWorker:
                     'supported_task_types': self.task_types,
                     'nickname': self.hostname(),
                 },
-                use_auth=False,  # explicitly do not use authentication
+                use_auth=False,  # cannot use authentication because we haven't registered yet
                 may_retry_loop=may_retry_loop,
+                extra_headers=headers,
             )
         except requests.exceptions.HTTPError:
             raise UnableToRegisterError()

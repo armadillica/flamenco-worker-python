@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
         ('may_i_run_interval_seconds', '5'),
         ('worker_id', ''),
         ('worker_secret', ''),
+        ('worker_registration_secret', ''),
 
         # All intervals in seconds
         ('push_log_max_interval_seconds', str(worker.PUSH_LOG_MAX_INTERVAL.total_seconds())),

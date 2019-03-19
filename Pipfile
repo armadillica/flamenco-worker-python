@@ -7,6 +7,7 @@ name = "pypi"
 attrs = "*"
 requests = "*"
 psutil = "*"
+pyjwt = "*"
 
 [dev-packages]
 pytest = "<4"  # pytest-cov uses deprecated function (removed in pytest 4) when using --no-cov
@@ -16,7 +17,7 @@ pyinstaller = "*"
 ipython = "*"
 mypy = "*"
 flamenco-worker = {editable = true,path = "."}
-colorama = {version = "*", sys_platform = "== 'win32'"}
+colorama = {version = "*",sys_platform = "== 'win32'"}
 
 [requires]
 python_version = "3.7"

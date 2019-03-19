@@ -16,6 +16,8 @@ changed functionality, fixed bugs).
 - The Worker now automatically re-registers when the Manager does not accept its credentials.
   This makes it easier to handle erasure of the Manager's database.
 - Explicitly use YUV420p pixel format when creating videos from images using FFmpeg.
+- Registration can now be secured on Flamenco Manager 2.4+, set `worker_registration_secret` in
+  `flamenco-worker.cfg` to the exact same string as in the Flamenco Manager configuration.
 
 
 ## Version 2.2.1 (2019-01-14)

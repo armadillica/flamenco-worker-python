@@ -115,6 +115,7 @@ def main():
         task_types=confparser.value('task_types').split(),
         worker_id=confparser.value('worker_id'),
         worker_secret=confparser.value('worker_secret'),
+        worker_registration_secret=confparser.value('worker_registration_secret'),
         loop=loop,
         shutdown_future=shutdown_future,
         push_log_max_interval=confparser.interval_secs('push_log_max_interval_seconds'),
