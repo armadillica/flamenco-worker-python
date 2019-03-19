@@ -26,7 +26,6 @@ FETCH_TASK_DONE_SCHEDULE_NEW_DELAY = 3  # after a task is completed
 ERROR_RETRY_DELAY = 600  # after the pre-task sanity check failed
 UNCAUGHT_EXCEPTION_RETRY_DELAY = 60  # after single_iteration errored out
 
-
 PUSH_LOG_MAX_ENTRIES = 1000
 PUSH_LOG_MAX_INTERVAL = datetime.timedelta(seconds=30)
 PUSH_ACT_MAX_INTERVAL = datetime.timedelta(seconds=15)
@@ -412,7 +411,6 @@ class FlamencoWorker:
                                 ' no longer allowed to run by Manager', self.identifier)
         await self.requeue_task_on_manager(task_id)
 
-
     async def requeue_task_on_manager(self, task_id: str):
         """Return a task to the Manager's queue for later execution."""
 
@@ -539,26 +537,26 @@ class FlamencoWorker:
             resp = await self.manager.post('/task', loop=self.loop)
         except requests.exceptions.RequestException as ex:
             log.warning('Error fetching new task, will retry in %i seconds: %s',
-                              FETCH_TASK_FAILED_RETRY_DELAY, ex)
+                        FETCH_TASK_FAILED_RETRY_DELAY, ex)
             self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
             return None
 
         if resp.status_code == 204:
             log.debug('No tasks available, will retry in %i seconds.',
-                            FETCH_TASK_EMPTY_RETRY_DELAY)
+                      FETCH_TASK_EMPTY_RETRY_DELAY)
             self.schedule_fetch_task(FETCH_TASK_EMPTY_RETRY_DELAY)
             return None
 
         if resp.status_code == 423:
             status_change = documents.StatusChangeRequest(**resp.json())
             log.info('status change to %r requested when fetching new task',
-                           status_change.status_requested)
+                     status_change.status_requested)
             self.change_status(status_change.status_requested)
             return None
 
         if resp.status_code != 200:
             log.warning('Error %i fetching new task, will retry in %i seconds.',
-                              resp.status_code, FETCH_TASK_FAILED_RETRY_DELAY)
+                        resp.status_code, FETCH_TASK_FAILED_RETRY_DELAY)
             self.schedule_fetch_task(FETCH_TASK_FAILED_RETRY_DELAY)
             return None
 
