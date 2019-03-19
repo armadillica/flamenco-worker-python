@@ -115,10 +115,12 @@ class FlamencoWorker:
     )
     _queued_log_entries = attr.ib(default=attr.Factory(list), init=False)  # type: typing.List[str]
     _queue_lock = attr.ib(default=attr.Factory(asyncio.Lock), init=False)
-    last_log_push = attr.ib(
+
+    # MyPy stumbles over the 'validator' argument here:
+    last_log_push = attr.ib(  # type: ignore
         default=attr.Factory(datetime.datetime.now),
         validator=attr.validators.optional(attr.validators.instance_of(datetime.datetime)))
-    last_activity_push = attr.ib(
+    last_activity_push = attr.ib(  # type: ignore
         default=attr.Factory(datetime.datetime.now),
         validator=attr.validators.optional(attr.validators.instance_of(datetime.datetime)))
 
