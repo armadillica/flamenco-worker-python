@@ -4,6 +4,12 @@ This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
 
+## Version 2.3.1 (2019-04-24)
+
+- Compatibility fix with Microsoft SMB shares.
+- Security fix for urllib3.
+
+
 ## Version 2.3 (2019-03-25)
 
 - Changed how progressive rendering works. Nonuniform tasks are now supported. This requires
