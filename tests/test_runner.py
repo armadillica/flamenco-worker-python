@@ -99,10 +99,10 @@ class ExecCommandTest(AbstractCommandTest):
         total_time = cmd.timing['total']
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call(f'Executing {settings["cmd"]}'),
+            call(f'exec: Executing {settings["cmd"]}'),
             call('pid=%d > hello, this is two lines' % pid),
             call('pid=%d > Yes, really.' % pid),  # note the logged line doesn't end in a newline
-            call(f'Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 0'),
+            call(f'exec: Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 0'),
             call(f'exec: command timing information: {{"total": {total_time}}}'),
             call('exec: Finished'),
         ])
@@ -136,9 +136,9 @@ class ExecCommandTest(AbstractCommandTest):
                      f"in position 0: invalid start byte"
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call(f'Executing {executable} '
+            call(f'exec: Executing {executable} '
                  f'-c \'import sys; sys.stdout.buffer.write(bytes((0x80, 0x80, 0x80)))\''),
-            call(f'TERMinating subprocess pid={pid}'),
+            call(f'exec: TERMinating subprocess pid={pid}'),
             call(decode_err),
         ])
 
@@ -165,9 +165,9 @@ class ExecCommandTest(AbstractCommandTest):
         total_time = cmd.timing['total']
         self.fworker.register_log.assert_has_calls([
             call('exec: Starting'),
-            call(f'Executing {settings["cmd"]}'),
+            call(f'exec: Executing {settings["cmd"]}'),
             call(f'pid={pid} > FAIL'),  # note the logged line doesn't end in a newline
-            call(f'Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 1'),
+            call(f'exec: Subprocess {settings["cmd"]}: Process pid={pid} exited with status code 1'),
             call(f'exec.(task_id=12345, command_idx=0): Error executing: '
                  f'Command {settings["cmd"]} (pid={pid}) failed with status 1'),
             call(f'exec: command timing information: {{"total": {total_time}}}'),

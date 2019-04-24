@@ -211,15 +211,22 @@ class AbstractCommand(metaclass=abc.ABCMeta):
 
         return True
 
+    async def log(self, level: int, msg: str):
+        """Log to both the Python log and the Task log.
+
+        The level is only used for the Python log.
+        """
+
+        self._log.log(level, msg)
+        await self.worker.register_log(f'{self.command_name}: {msg}')
+
     async def log_recorded_timings(self) -> None:
         """Send the timing recorded in self._timing to the task log."""
         if not self.timing:
             return
 
         as_json = json.dumps(self.timing, cls=json_encoder.JSONEncoder)
-        log_line = f'command timing information: {as_json}'
-        self._log.info(log_line)
-        await self.worker.register_log(f'{self.command_name}: {log_line}')
+        await self.log(logging.INFO, f'command timing information: {as_json}')
 
     async def abort(self):
         """Aborts the command. This may or may not be actually possible.
@@ -501,9 +508,7 @@ class CopyFileCommand(AbstractCommand):
         await self._mkdir_if_not_exists(dest.parent)
 
         if dest.exists():
-            msg = 'Destination %s exists, going to delete it first.' % dest
-            self._log.info(msg)
-            await self.worker.register_log('%s: %s', self.command_name, msg)
+            await self.log(logging.INFO, f'Destination {dest} exists, going to delete it first.')
             dest.unlink()
 
         shutil.copy(str(src), str(dest))
@@ -732,15 +737,6 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
             return
 
         await self._log_process_termination(self.proc.pid, await self.proc.wait())
-
-    async def log(self, level: int, msg: str):
-        """Log to both the Python log and the Task log.
-
-        The level is only used for the Python log.
-        """
-
-        self._log.log(level, msg)
-        await self.worker.register_log(msg)
 
     async def _log_process_termination(self, pid: int, exitcode: int, msg_prefix=''):
         """Log the fact that the process terminated.
