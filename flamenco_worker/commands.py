@@ -509,7 +509,10 @@ class CopyFileCommand(AbstractCommand):
 
         if dest.exists():
             await self.log(logging.INFO, f'Destination {dest} exists, going to delete it first.')
-            dest.unlink()
+            try:
+                dest.unlink()
+            except OSError as ex:
+                raise CommandExecutionError(f'Error unlinking destination {dest}: {ex}')
 
         shutil.copy(str(src), str(dest))
         self.worker.output_produced(dest)
