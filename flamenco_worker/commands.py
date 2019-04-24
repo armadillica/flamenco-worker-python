@@ -514,7 +514,16 @@ class CopyFileCommand(AbstractCommand):
             except OSError as ex:
                 raise CommandExecutionError(f'Error unlinking destination {dest}: {ex}')
 
-        shutil.copy(str(src), str(dest))
+        try:
+            shutil.copyfile(src, dest)
+        except OSError as ex:
+            raise CommandExecutionError(f'Error copying {src} to {dest}: {ex}')
+
+        try:
+            shutil.copymode(src, dest)
+        except OSError as ex:
+            await self.log(logging.INFO, f'Unable to copy file mode from {src} to {dest}: {ex}')
+
         self.worker.output_produced(dest)
 
 
