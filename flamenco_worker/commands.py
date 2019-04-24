@@ -494,15 +494,17 @@ class CopyFileCommand(AbstractCommand):
             raise CommandExecutionError('Path %s does not exist, unable to copy' % src)
 
         dest = Path(settings['dest'])
-        if dest.exists():
-            msg = 'Destination %s exists, going to overwrite it.' % dest
-            self._log.info(msg)
-            await self.worker.register_log('%s: %s', self.command_name, msg)
 
         self._log.info('Copying %s to %s', src, dest)
         await self.worker.register_log('%s: Copying %s to %s', self.command_name, src, dest)
 
         await self._mkdir_if_not_exists(dest.parent)
+
+        if dest.exists():
+            msg = 'Destination %s exists, going to delete it first.' % dest
+            self._log.info(msg)
+            await self.worker.register_log('%s: %s', self.command_name, msg)
+            dest.unlink()
 
         shutil.copy(str(src), str(dest))
         self.worker.output_produced(dest)
