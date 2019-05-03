@@ -8,6 +8,7 @@ changed functionality, fixed bugs).
 
 - Compatibility fix with Microsoft SMB shares.
 - Security fix for urllib3.
+- Extra checks on the `manager_url` configuration value, as it's easy to get wrong.
 
 
 ## Version 2.3 (2019-03-25)

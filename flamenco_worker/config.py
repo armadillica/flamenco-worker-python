@@ -114,6 +114,8 @@ def load_config(config_file: pathlib.Path = None,
     if enable_test_mode:
         confparser.setvalue('task_types', TESTING_TASK_TYPES)
 
+    check_config(confparser)
+
     if show_effective_config:
         import sys
         log.info('Effective configuration:')
@@ -137,3 +139,22 @@ def configure_logging(confparser: configparser.ConfigParser, enable_debug: bool)
     if enable_debug:
         logging.getLogger('flamenco_worker').setLevel(logging.DEBUG)
         log.debug('Enabling debug logging')
+
+
+def check_config(confparser: configparser.ConfigParser):
+    """Check the config, stopping the process if there is an error."""
+
+    # The manager URL is very easily gotten wrong.
+    manager_url = confparser.get(CONFIG_SECTION, 'manager_url')
+    if not manager_url:
+        # Empty URL is fine.
+        return
+
+    if manager_url[0] in "'\"":
+        raise SystemExit(f'Configuration error: manager_url should not be quoted: {manager_url}')
+    if '://' not in manager_url:
+        raise SystemExit(f'Configuration error: manager_url should be a URL '
+                         f'(so https://something/ or http://something/): {manager_url}')
+    if not manager_url.startswith('http'):
+        raise SystemExit(f'Configuration error: manager_url should start with https:// or http://'
+                         f'(so https://something/ or http://something/): {manager_url}')
