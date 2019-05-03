@@ -4,7 +4,7 @@ This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
 
-## Version 2.3.1 (2019-04-24)
+## Version 2.3.1 (2019-05-03)
 
 - Compatibility fix with Microsoft SMB shares.
 - Security fix for urllib3.
