@@ -6,6 +6,9 @@ changed functionality, fixed bugs).
 ## Version 2.4 (in development)
 
 - Added `video-encoding` to the default settings.
+- Removed the pre-task checks from the default settings, as they are very specific to the
+  environment in which the Worker runs.
+
 
 ## Version 2.3.1 (2019-05-03)
 
