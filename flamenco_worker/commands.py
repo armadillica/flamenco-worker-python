@@ -343,8 +343,17 @@ class SleepCommand(AbstractCommand):
 
     async def execute(self, settings: Settings):
         time_in_seconds = settings['time_in_seconds']
+        start_time = time.time()
         await self.worker.register_log('Sleeping for %s seconds' % time_in_seconds)
-        await asyncio.sleep(time_in_seconds)
+
+        # Make sure we don't sleep any less than required (can happen on Windows
+        # with a single asyncio.sleep() call).
+        while True:
+            time_left = time_in_seconds - (time.time() - start_time)
+            if time_left < 0.05:
+                break
+            await asyncio.sleep(time_left)
+
         await self.worker.register_log('Done sleeping for %s seconds' % time_in_seconds)
 
 
