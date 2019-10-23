@@ -1268,7 +1268,7 @@ class EXRSequenceToJPEGCommand(BlenderRenderCommand):
             return 'Just pass "exr_glob", do not use "exr_directory"'
 
         if exr_directory:
-            settings['exr_glob'] = str(Path(exr_directory) / '*.exr')
+            settings['exr_glob'] = (Path(exr_directory) / '*.exr').as_posix()
 
         output_pattern, err = self._setting(settings, 'output_pattern', False,
                                             default='preview-######.jpg')
