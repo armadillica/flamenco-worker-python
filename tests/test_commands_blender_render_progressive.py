@@ -22,6 +22,13 @@ class BlenderRenderProgressiveTest(AbstractCommandTest):
             command_idx=0,
         )
 
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmppath = Path(self.tmpdir.name)
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+        super().tearDown()
+
     def test_cli_args(self):
         """Test that CLI arguments in the blender_cmd setting are handled properly."""
         from tests.mock_responses import CoroMock
@@ -34,7 +41,7 @@ class BlenderRenderProgressiveTest(AbstractCommandTest):
             'frames': '1..2',
             'format': 'EXR',
             'filepath': filepath,
-            'render_output': '/some/path/there.exr',
+            'render_output': (self.tmppath / 'some/path/there.exr').as_posix(),
             'cycles_num_chunks': 400,
             'cycles_chunk_start': 223,
             'cycles_chunk_end': 311,
@@ -54,7 +61,7 @@ class BlenderRenderProgressiveTest(AbstractCommandTest):
                 '-noaudio',
                 '--background',
                 filepath,
-                '--render-output', '/some/path/there.exr',
+                '--render-output', (self.tmppath / 'some/path/there.exr').as_posix(),
                 '--render-format', 'EXR',
                 '--render-frame', '1..2',
                 '--',
