@@ -3,7 +3,7 @@
 This file logs the changes that are actually interesting to users (new features,
 changed functionality, fixed bugs).
 
-## Version 2.5 (in development)
+## Version 2.5 (2029-03-12)
 
 - Remove `LD_LIBRARY_PATH` environment variable when running a subprocess. This should prevent
   library version conflicts when running Flamenco Worker on a more modern Linux.
