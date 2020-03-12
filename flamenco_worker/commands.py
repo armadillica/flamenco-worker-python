@@ -6,6 +6,7 @@ import asyncio.subprocess
 import datetime
 import json
 import logging
+import os
 import pathlib
 import platform
 import re
@@ -641,11 +642,18 @@ class AbstractSubprocessCommand(AbstractCommand, abc.ABC):
 
         line_logger = log.getChild(f'line.{self.identifier}')
 
+        # Remove LD_LIBRARY_PATH from the environment. This is set by the bundled Python runner
+        # in order to find the libraries of the bundled Python. However, it interferes with the
+        # library loading of subprocesses.
+        env = os.environ.copy()
+        env.pop('LD_LIBRARY_PATH', None)
+
         self.proc = await asyncio.create_subprocess_exec(
             *args,
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
+            env=env,
         )
 
         pid_path = self.subprocess_pid_file

@@ -56,6 +56,7 @@ class BlenderRenderProgressiveTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )
 
     def test_exr_directory(self):
@@ -92,4 +93,5 @@ class BlenderRenderProgressiveTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )

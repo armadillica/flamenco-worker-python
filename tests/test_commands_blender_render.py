@@ -10,6 +10,7 @@ from tests.test_runner import AbstractCommandTest
 
 class BlenderRenderTest(AbstractCommandTest):
     thisfile = Path(__file__).as_posix()
+
     def setUp(self):
         super().setUp()
 
@@ -106,6 +107,7 @@ class BlenderRenderTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )
 
     def test_cli_openexr(self):
@@ -140,6 +142,7 @@ class BlenderRenderTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )
 
     def test_python_expr(self):
@@ -176,6 +179,7 @@ class BlenderRenderTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )
 
     def test_cli_args_override_file(self):
@@ -218,4 +222,50 @@ class BlenderRenderTest(AbstractCommandTest):
                     stdin=subprocess.DEVNULL,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
+                    env=mock.ANY,
                 )
+
+    def test_cli_environment(self):
+        """Test that LD_LIBRARY_PATH is removed from the environment."""
+        from tests.mock_responses import CoroMock
+
+        filepath = Path(__file__).parent.as_posix()
+        settings = {
+            # Point blender_cmd to this file so that we're sure it exists.
+            'blender_cmd': f'{self.thisfile!r} --with --cli="args for CLI"',
+            'chunk_size': 100,
+            'frames': '1..2',
+            'format': 'JPEG',
+            'filepath': filepath,
+        }
+
+        cse = CoroMock(...)
+        cse.coro.return_value.wait = CoroMock(return_value=0)
+        cse.coro.return_value.pid = 47
+
+        mock_env = {
+            'PATH': '/path/a:/path/b',
+            'LD_LIBRARY_PATH': '/path/to/conflicting/libraries',
+        }
+
+        with patch('asyncio.create_subprocess_exec', new=cse) as mock_cse, \
+                patch('os.environ', new=mock_env):
+            self.loop.run_until_complete(self.cmd.run(settings))
+
+            mock_cse.assert_called_once_with(
+                self.thisfile,
+                '--with',
+                '--cli=args for CLI',
+                '--enable-autoexec',
+                '-noaudio',
+                '--background',
+                filepath,
+                '--render-format', 'JPEG',
+                '--render-frame', '1..2',
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                env={
+                    'PATH': '/path/a:/path/b',
+                },
+            )

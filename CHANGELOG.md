@@ -5,6 +5,9 @@ changed functionality, fixed bugs).
 
 ## Version 2.5 (in development)
 
+- Remove `LD_LIBRARY_PATH` environment variable when running a subprocess. This should prevent
+  library version conflicts when running Flamenco Worker on a more modern Linux.
+
 
 ## Version 2.4 (2019-10-22)
 

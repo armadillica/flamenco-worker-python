@@ -60,4 +60,5 @@ class RenderAudioTest(AbstractCommandTest):
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                env=mock.ANY,
             )
